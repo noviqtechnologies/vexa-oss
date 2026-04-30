@@ -1,26 +1,45 @@
-import os
 import fnmatch
 from pathlib import Path
-from typing import List, Set, Optional
+from typing import List, Optional
+
 
 class PathFilter:
     """Centralized Exclusion Engine for Vexa."""
 
     DEFAULT_EXCLUSIONS = {
-        ".git", "node_modules", "test", "tests", "unit_test", 
-        "vexa_scan_reports", ".vexa", ".vexa-baseline.json",
-        "vexa-baseline.json", "venv", ".venv", "__pycache__", 
-        "dist", "build", ".pytest_cache", ".tox"
+        ".git",
+        "node_modules",
+        "test",
+        "tests",
+        "unit_test",
+        "vexa_scan_reports",
+        ".vexa",
+        ".vexa-baseline.json",
+        "vexa-baseline.json",
+        "venv",
+        ".venv",
+        "__pycache__",
+        "dist",
+        "build",
+        ".pytest_cache",
+        ".tox",
     }
 
-    def __init__(self, workspace_root: Path, user_config_ignores: Optional[List[str]] = None, cli_excludes: Optional[List[str]] = None):
+    def __init__(
+        self,
+        workspace_root: Path,
+        user_config_ignores: Optional[List[str]] = None,
+        cli_excludes: Optional[List[str]] = None,
+    ):
         self.workspace_root = Path(workspace_root).resolve()
         self.user_config_ignores = set(user_config_ignores or [])
         self.cli_excludes = set(cli_excludes or [])
         self.gitignore_patterns = self._load_gitignore()
-        
+
         # Combine all exclusions for easy access
-        self.all_ignores = self.DEFAULT_EXCLUSIONS.union(self.user_config_ignores).union(self.cli_excludes)
+        self.all_ignores = self.DEFAULT_EXCLUSIONS.union(
+            self.user_config_ignores
+        ).union(self.cli_excludes)
 
     def _load_gitignore(self) -> List[str]:
         gitignore_path = self.workspace_root / ".gitignore"
@@ -48,12 +67,16 @@ class PathFilter:
         for ignore_item in self.all_ignores:
             if ignore_item in parts:
                 return True
-            if fnmatch.fnmatch(path_str, ignore_item) or fnmatch.fnmatch(path.name, ignore_item):
+            if fnmatch.fnmatch(path_str, ignore_item) or fnmatch.fnmatch(
+                path.name, ignore_item
+            ):
                 return True
 
         # 2. Check .gitignore patterns
         for pattern in self.gitignore_patterns:
-            if fnmatch.fnmatch(path_str, pattern) or fnmatch.fnmatch(path.name, pattern):
+            if fnmatch.fnmatch(path_str, pattern) or fnmatch.fnmatch(
+                path.name, pattern
+            ):
                 return True
             # naive directory glob fallback
             if pattern.endswith("/") and pattern[:-1] in parts:

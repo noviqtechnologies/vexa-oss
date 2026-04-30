@@ -16,13 +16,13 @@ from vexa.reports.generator import BaseReportGenerator, ReportGenerator, ReportM
 class SBOMReportGenerator(BaseReportGenerator):
     """
     Generator for SBOM reports.
-    
+
     KF-012: Extracts raw SBOM data from the 'syft' scanner results.
     """
-    
+
     format_name = "sbom"
     file_extension = ".json"
-    
+
     def generate(
         self,
         result: ScanResult,
@@ -31,24 +31,24 @@ class SBOMReportGenerator(BaseReportGenerator):
     ) -> Path:
         """
         Generate an SBOM report.
-        
+
         Args:
             result: ScanResult containing data from syft scanner
             output_path: Directory or file path for output
             metadata: Optional report metadata
-            
+
         Returns:
             Path to the generated SBOM file
         """
         target_path = self._prepare_output_path(output_path)
-        
+
         # Find syft scanner result
         syft_result = None
         for scanner_name, res in result.scanners_run.items():
             if scanner_name == "syft":
                 syft_result = res
                 break
-        
+
         if not syft_result:
             # Fallback: create a minimal SBOM from scanned packages in core findings
             # but usually we want the full Syft output
@@ -61,12 +61,12 @@ class SBOMReportGenerator(BaseReportGenerator):
                     "tool": {
                         "vendor": "Vexa",
                         "name": "Vexa Core",
-                        "version": "1.0.20"
-                    }
+                        "version": "1.0.20",
+                    },
                 },
-                "components": []
+                "components": [],
             }
-            
+
             # Extract basic package info from syft informant findings if available
             for finding in result.findings:
                 if finding.scanner == "syft":
@@ -83,10 +83,10 @@ class SBOMReportGenerator(BaseReportGenerator):
                 for f in syft_result.findings:
                     if f.raw_data:
                         sbom_data["components"].append(f.raw_data)
-        
+
         with open(target_path, "w", encoding="utf-8") as f:
             json.dump(sbom_data, f, indent=2)
-            
+
         return target_path
 
 

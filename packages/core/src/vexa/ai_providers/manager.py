@@ -12,15 +12,14 @@ Implements:
 import asyncio
 import json
 import hashlib
-from typing import Any, Dict, List, Optional, Tuple, Set
+from typing import Any, Dict, List, Optional, Tuple
 from pathlib import Path
 
 from vexa.ai_providers.base import (
-    AIAnalysisResult,
     AIProviderStatus,
-    AIProviderType,
     BaseAIProvider,
 )
+
 # SDK-based providers (active)
 from vexa.ai_providers.google_sdk import get_gemini_sdk_wrapper
 from vexa.ai_providers.openai_provider import get_openai_wrapper
@@ -28,13 +27,13 @@ from vexa.ai_providers.anthropic_provider import get_anthropic_wrapper
 from vexa.ai_providers.ollama_provider import get_ollama_wrapper
 
 
-from vexa.common.logging import get_logger, audit_logger
+from vexa.common.logging import get_logger
 from vexa.common.models import CloudProvider, Finding, EnhancedFinding
 from vexa.common.config import (
-    AI_BATCH_SIZE, 
-    FALSE_POSITIVE_THRESHOLD, 
-    AI_CACHE_FILE, 
-    AI_MIN_SEVERITY_THRESHOLD
+    AI_BATCH_SIZE,
+    FALSE_POSITIVE_THRESHOLD,
+    AI_CACHE_FILE,
+    AI_MIN_SEVERITY_THRESHOLD,
 )
 
 
@@ -44,19 +43,19 @@ logger = get_logger(__name__)
 class AIProviderManager:
     """
     Manages AI provider selection, fallback, and finding enrichment.
-    
+
     G-001: Allow user to choose between different cloud providers
     G-002: Use appropriate AI capabilities based on chosen provider
-    
+
     Features:
     - Automatic provider selection based on cloud provider
     - Fallback between providers on failure
     - Batch processing for efficiency
     - False positive filtering at >90% confidence
     """
-    
+
     PROMPT_VERSION = "2"  # Increment this to invalidate AI cache when prompts change
-    
+
     def __init__(
         self,
         cloud_provider: CloudProvider = CloudProvider.NONE,
@@ -70,7 +69,7 @@ class AIProviderManager:
     ):
         """
         Initialize AI Provider Manager.
-        
+
         Args:
             cloud_provider: Selected cloud provider
             batch_size: Number of findings per AI batch
@@ -84,35 +83,33 @@ class AIProviderManager:
         self.batch_size = batch_size
         self.fp_threshold = fp_threshold * 100  # Convert to percentage
         self.min_severity = min_severity
-        
+
         # Cache for AI results
         self._cache_file = AI_CACHE_FILE
         self._cache: Dict[str, Dict[str, Any]] = self._load_cache()
-        
+
         # Initialize SDK-based providers
         self._gemini = get_gemini_sdk_wrapper()
         self._openai = get_openai_wrapper()
         self._anthropic = get_anthropic_wrapper()
         self._ollama = None  # Lazy-initialized when needed
 
-
-        
         # Privacy Vault mode flag — set when Ollama is active
         self.is_local_mode = False
-        
+
         # Primary provider based on cloud selection
         self._primary_provider: Optional[BaseAIProvider] = None
         self._fallback_provider: Optional[BaseAIProvider] = None
-        
+
         self._configure_providers()
-    
+
     def _configure_providers(self) -> None:
         """Configure primary and fallback providers based on cloud selection."""
         # Reset providers
         self._primary_provider = None
         self._fallback_provider = None
         self.is_local_mode = False
-        
+
         # Explicit override handling (for IDE/CLI direct configuration)
         if self.ai_provider_override:
             override = self.ai_provider_override.lower()
@@ -138,15 +135,17 @@ class AIProviderManager:
                 # Privacy Vault mode — local LLM
                 from vexa.common.config_manager import load_config
                 import os
+
                 config = load_config(os.getcwd())
                 model = self.ai_model_override or config.ai.model or "gemma4:26b"
-                
+
                 host = config.ai.ollama_host
                 port = config.ai.ollama_port
-                
+
                 if self.ollama_url_override:
                     try:
                         from urllib.parse import urlparse
+
                         parsed = urlparse(self.ollama_url_override)
                         host = parsed.hostname or host
                         port = parsed.port or port
@@ -160,12 +159,19 @@ class AIProviderManager:
                 )
                 self._primary_provider = self._ollama
                 self.is_local_mode = True
-                logger.info("Privacy Vault activated — all analysis runs locally via Ollama (%s)", model)
+                logger.info(
+                    "Privacy Vault activated — all analysis runs locally via Ollama (%s)",
+                    model,
+                )
             elif override == "aws":
-                logger.warning("AWS provider requires OpenAI or Anthropic configuration.")
+                logger.warning(
+                    "AWS provider requires OpenAI or Anthropic configuration."
+                )
                 self._primary_provider = None
             elif override == "azure":
-                logger.warning("Azure provider requires OpenAI or Anthropic configuration.")
+                logger.warning(
+                    "Azure provider requires OpenAI or Anthropic configuration."
+                )
                 self._primary_provider = None
 
         else:
@@ -173,10 +179,14 @@ class AIProviderManager:
             if self.cloud_provider == CloudProvider.GOOGLE:
                 self._primary_provider = self._gemini
             elif self.cloud_provider == CloudProvider.AWS:
-                logger.warning("AWS cloud provider selected but no active SDK provider is configured. Use OpenAI or Anthropic.")
+                logger.warning(
+                    "AWS cloud provider selected but no active SDK provider is configured. Use OpenAI or Anthropic."
+                )
                 self._primary_provider = None
             elif self.cloud_provider == CloudProvider.AZURE:
-                logger.warning("Azure cloud provider selected but no active SDK provider is configured. Use OpenAI or Anthropic.")
+                logger.warning(
+                    "Azure cloud provider selected but no active SDK provider is configured. Use OpenAI or Anthropic."
+                )
                 self._primary_provider = None
             elif self.cloud_provider == CloudProvider.OPENAI:
                 self._primary_provider = self._openai
@@ -186,6 +196,7 @@ class AIProviderManager:
                 # Privacy Vault mode — local LLM
                 from vexa.common.config_manager import load_config
                 import os
+
                 # Try to load Ollama config from .vexa.yml
                 config = load_config(os.getcwd())
                 self._ollama = get_ollama_wrapper(
@@ -195,12 +206,14 @@ class AIProviderManager:
                 )
                 self._primary_provider = self._ollama
                 self.is_local_mode = True
-                logger.info("Privacy Vault activated — all analysis runs locally via Ollama (%s)", config.ai.model)
-            
+                logger.info(
+                    "Privacy Vault activated — all analysis runs locally via Ollama (%s)",
+                    config.ai.model,
+                )
+
         if self._primary_provider:
-             logger.info(
-                "AI provider configured: %s",
-                self._primary_provider.PROVIDER_TYPE.value
+            logger.info(
+                "AI provider configured: %s", self._primary_provider.PROVIDER_TYPE.value
             )
 
     # ------------------------------------------------------------------
@@ -281,8 +294,6 @@ class AIProviderManager:
             "is_primary": self._primary_provider == self._anthropic,
         }
 
-
-
         # Overall status
         results["has_available_provider"] = any(
             s == AIProviderStatus.AVAILABLE
@@ -290,7 +301,7 @@ class AIProviderManager:
         )
 
         return results
-    
+
     async def enrich_findings(
         self,
         findings: List[Finding],
@@ -304,26 +315,26 @@ class AIProviderManager:
         if not self._primary_provider:
             logger.warning("No AI provider configured, returning unenriched findings")
             return [self._finding_to_enhanced(f) for f in findings], []
-        
+
         # 1. Filter by Severity
         min_rank = self._severity_to_rank(self.min_severity)
         to_enrich = []
         filtered_results = []
-        
+
         for f in findings:
             if self._severity_to_rank(f.severity) < min_rank:
                 filtered_results.append(self._finding_to_enhanced(f))
             else:
                 to_enrich.append(f)
-                
+
         if not to_enrich:
             return filtered_results, []
 
         # 2. Deduplication & Cache Lookup
         unique_findings_to_enrich = []
         finding_id_to_hash = {f.id: self._get_finding_hash(f) for f in to_enrich}
-        hash_to_enhanced = {} # Stores the result for a given hash
-        
+        hash_to_enhanced = {}  # Stores the result for a given hash
+
         # Check cache first
         for f in to_enrich:
             f_hash = finding_id_to_hash[f.id]
@@ -335,17 +346,17 @@ class AIProviderManager:
                     if hasattr(enhanced, key):
                         setattr(enhanced, key, val)
                 hash_to_enhanced[f_hash] = enhanced
-        
+
         # Identify hashes that still need enrichment
         hashes_needed = set(finding_id_to_hash.values()) - set(hash_to_enhanced.keys())
-        
+
         # Map one finding instance to each unique hash needed
         hash_to_representative = {}
         for f in to_enrich:
             f_hash = finding_id_to_hash[f.id]
             if f_hash in hashes_needed and f_hash not in hash_to_representative:
                 hash_to_representative[f_hash] = f
-        
+
         unique_findings_to_enrich = list(hash_to_representative.values())
 
         if unique_findings_to_enrich:
@@ -353,39 +364,54 @@ class AIProviderManager:
             status, msg = await self._primary_provider.test_connection()
             if status != AIProviderStatus.AVAILABLE:
                 logger.error("AI Provider Connection Failed: %s", msg)
-                error_results = [self._finding_to_enhanced(f, error_message=msg) for f in unique_findings_to_enrich]
+                error_results = [
+                    self._finding_to_enhanced(f, error_message=msg)
+                    for f in unique_findings_to_enrich
+                ]
                 for ef in error_results:
                     hash_to_enhanced[finding_id_to_hash[ef.id]] = ef
             else:
                 # 3. Batch Process Unique Findings
                 from vexa.common.config import AI_MAX_CONCURRENT_BATCHES
+
                 code_contexts = code_contexts or {}
                 semaphore = asyncio.Semaphore(AI_MAX_CONCURRENT_BATCHES)
-                
-                batches = [unique_findings_to_enrich[i : i + self.batch_size] 
-                          for i in range(0, len(unique_findings_to_enrich), self.batch_size)]
-                
-                logger.info("Enriching %d unique findings in %d batches", len(unique_findings_to_enrich), len(batches))
 
-                async def _process_batch_with_limit(batch: List[Finding]) -> List[EnhancedFinding]:
+                batches = [
+                    unique_findings_to_enrich[i : i + self.batch_size]
+                    for i in range(0, len(unique_findings_to_enrich), self.batch_size)
+                ]
+
+                logger.info(
+                    "Enriching %d unique findings in %d batches",
+                    len(unique_findings_to_enrich),
+                    len(batches),
+                )
+
+                async def _process_batch_with_limit(
+                    batch: List[Finding],
+                ) -> List[EnhancedFinding]:
                     async with semaphore:
                         return await self._process_batch(
-                            batch, 
-                            code_contexts=code_contexts, 
+                            batch,
+                            code_contexts=code_contexts,
                             app_context=app_context,
-                            is_workspace_scan=is_workspace_scan
+                            is_workspace_scan=is_workspace_scan,
                         )
 
                 tasks = [_process_batch_with_limit(batch) for batch in batches]
                 batch_executions = await asyncio.gather(*tasks, return_exceptions=True)
-                
+
                 for res in batch_executions:
                     if isinstance(res, list):
                         for ef in res:
                             f_hash = finding_id_to_hash[ef.id]
                             hash_to_enhanced[f_hash] = ef
                             # Save to persistent cache if successful (remediation found)
-                            if ef.remediation_code and "failed" not in ef.remediation_code.lower():
+                            if (
+                                ef.remediation_code
+                                and "failed" not in ef.remediation_code.lower()
+                            ):
                                 self._cache[f_hash] = {
                                     "detailed_description": ef.detailed_description,
                                     "attack_scenario": ef.attack_scenario,
@@ -398,7 +424,7 @@ class AIProviderManager:
                                 }
                     else:
                         logger.error("Batch failed: %s", res)
-            
+
             # Save updated cache to disk
             self._save_cache()
 
@@ -410,28 +436,41 @@ class AIProviderManager:
                 # Copy the enrichment from the representative finding to THIS specific instance
                 template = hash_to_enhanced[f_hash]
                 instance = self._finding_to_enhanced(f)
-                for key in ["detailed_description", "attack_scenario", "business_impact", 
-                           "exploitability", "remediation_code", "remediation_guidance", 
-                           "implementation_steps", "rollback_procedure"]:
+                for key in [
+                    "detailed_description",
+                    "attack_scenario",
+                    "business_impact",
+                    "exploitability",
+                    "remediation_code",
+                    "remediation_guidance",
+                    "implementation_steps",
+                    "rollback_procedure",
+                ]:
                     if hasattr(template, key):
                         setattr(instance, key, getattr(template, key))
                 final_enhanced.append(instance)
             else:
-                final_enhanced.append(self._finding_to_enhanced(f, error_message="AI enrichment skipped or failed"))
+                final_enhanced.append(
+                    self._finding_to_enhanced(
+                        f, error_message="AI enrichment skipped or failed"
+                    )
+                )
 
         # Filter False Positives
         all_results = filtered_results + final_enhanced
         final_findings, fps = await self.filter_false_positives(all_results)
-        
+
         logger.info(
             "Enrichment complete: %d optimized (cached/deduped), %d total, %d FPs filtered",
-            len(to_enrich) - len(unique_findings_to_enrich), len(findings), len(fps)
+            len(to_enrich) - len(unique_findings_to_enrich),
+            len(findings),
+            len(fps),
         )
-        
+
         return final_findings, fps
 
     async def _process_batch(
-        self, 
+        self,
         batch: List[Finding],
         code_contexts: Dict[str, str],
         app_context: Optional[Dict[str, Any]] = None,
@@ -440,7 +479,7 @@ class AIProviderManager:
         """Process a single batch of findings with fallback logic."""
         batch_enhanced = []
         batch_error = None
-        
+
         # Try primary provider
         try:
             if self._primary_provider.is_available:
@@ -449,7 +488,7 @@ class AIProviderManager:
                     code_contexts=code_contexts,
                     batch_size=len(batch),
                     app_context=app_context,
-                    is_workspace_scan=is_workspace_scan
+                    is_workspace_scan=is_workspace_scan,
                 )
             else:
                 status, msg = await self._primary_provider.check_availability()
@@ -457,7 +496,7 @@ class AIProviderManager:
         except Exception as e:
             logger.exception("Primary provider failed for batch: %s", e)
             batch_error = str(e)
-            
+
         # If primary failed, we no longer fallback automatically
         if batch_error:
             logger.warning("AI analysis failed for batch: %s", batch_error)
@@ -465,7 +504,7 @@ class AIProviderManager:
         # Combine results for this batch
         batch_results = []
         enriched_ids = {f.id for f in batch_enhanced}
-        
+
         for finding in batch:
             if finding.id in enriched_ids:
                 # Successfully enriched
@@ -476,76 +515,107 @@ class AIProviderManager:
             else:
                 # Failed to enrich - use professional error message
                 user_message = self._map_error_to_user_message(batch_error)
-                batch_results.append(self._finding_to_enhanced(finding, error_message=user_message))
-                
+                batch_results.append(
+                    self._finding_to_enhanced(finding, error_message=user_message)
+                )
+
         return batch_results
 
     def _map_error_to_user_message(self, error: Optional[str]) -> str:
         """Map internal system errors to user-friendly messages."""
         if not error:
             return "AI Analysis Failed: Service Temporarily Unavailable"
-            
+
         err_lower = error.lower()
-        
+
         # Prioritize service/quota errors
-        if any(kw in err_lower for kw in ["quota", "rate limit", "429", "too many requests"]):
+        if any(
+            kw in err_lower
+            for kw in ["quota", "rate limit", "429", "too many requests"]
+        ):
             return "AI Analysis Failed: Quota Exceeded (429)"
         elif "timed out" in err_lower or "deadline" in err_lower:
             return "AI Analysis Failed: Service Timeout"
-            
+
         # Distinguish between missing tool and incompatible tool
-        if any(kw in err_lower for kw in ["file not found", "no such file", "command not found", "winerror 2"]):
+        if any(
+            kw in err_lower
+            for kw in [
+                "file not found",
+                "no such file",
+                "command not found",
+                "winerror 2",
+            ]
+        ):
             return "AI Analysis Failed: AI Tool Not Installed or Path Error"
-            
+
         # If it failed but the command was likely found, check for arg errors (incompatibility)
-        if any(kw in err_lower for kw in ["argument", "invalid option", "not recognized", "unknown option"]):
+        if any(
+            kw in err_lower
+            for kw in ["argument", "invalid option", "not recognized", "unknown option"]
+        ):
             return f"AI Analysis Failed: Incompatible AI Tool Version or Flags ({error[:40]})"
-            
-        if "api_key" in err_lower or "authentication" in err_lower or "unauthorized" in err_lower:
+
+        if (
+            "api_key" in err_lower
+            or "authentication" in err_lower
+            or "unauthorized" in err_lower
+        ):
             return "AI Analysis Failed: Configuration Error (Missing/Invalid API Key)"
         elif "markdown" in err_lower or "parse" in err_lower:
             return "AI Analysis Failed: Parsing Error (Unexpected AI Response)"
-            
-        return f"AI Analysis Failed: {error[:60]}..." if error else "AI Analysis Failed: Service Unavailable"
-    
+
+        return (
+            f"AI Analysis Failed: {error[:60]}..."
+            if error
+            else "AI Analysis Failed: Service Unavailable"
+        )
+
     async def filter_false_positives(
         self,
         findings: List[EnhancedFinding],
     ) -> Tuple[List[EnhancedFinding], List[EnhancedFinding]]:
         """
         Filter findings based on false positive confidence.
-        
+
         SS-010, SS-011: >90% FP detection confidence
-        
+
         Args:
             findings: List of enhanced findings to filter
-            
+
         Returns:
             Tuple of (valid_findings, false_positives)
         """
         valid = []
         false_positives = []
-        
+
         for finding in findings:
             # Check if FP confidence is high
-            fp_conf_percent = finding.false_positive_confidence * 100 if finding.false_positive_confidence <= 1.0 else finding.false_positive_confidence
+            fp_conf_percent = (
+                finding.false_positive_confidence * 100
+                if finding.false_positive_confidence <= 1.0
+                else finding.false_positive_confidence
+            )
 
             if finding.is_false_positive and fp_conf_percent > self.fp_threshold:
                 false_positives.append(finding)
                 logger.debug(
                     "Finding %s marked as FP (confidence: %.1f%%)",
-                    finding.id, fp_conf_percent
+                    finding.id,
+                    fp_conf_percent,
                 )
             else:
                 valid.append(finding)
-        
+
         logger.info(
             "FP filtering: %d valid, %d false positives (threshold: %.1f%%)",
-            len(valid), len(false_positives), self.fp_threshold
+            len(valid),
+            len(false_positives),
+            self.fp_threshold,
         )
-        
+
         return (valid, false_positives)
-    
+
     async def generate_stride_threats(
         self,
         repository_path: str,
@@ -553,19 +623,18 @@ class AIProviderManager:
     ) -> Dict[str, Any]:
         """
         Generate STRIDE threat analysis for repository.
-        
+
         TM-001, TM-002: STRIDE threat models
         TM-005: Parallel STRIDE category execution
-        
+
         Args:
             repository_path: Path to the repository
             categories: STRIDE categories to analyze (default: all)
-            
+
         Returns:
             Dictionary with STRIDE analysis results
         """
-        from pathlib import Path
-        
+
         if categories is None:
             categories = [
                 "spoofing",
@@ -575,21 +644,21 @@ class AIProviderManager:
                 "denial_of_service",
                 "elevation_of_privilege",
             ]
-        
+
         if not self._primary_provider:
             logger.warning("No AI provider available for STRIDE analysis")
             return {"error": "No AI provider available", "categories": {}}
-        
+
         repo_path = Path(repository_path)
-        
+
         # TM-005: Run categories in parallel
         tasks = [
             self._primary_provider.generate_stride_analysis(repo_path, category)
             for category in categories
         ]
-        
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         stride_results = {}
         for category, result in zip(categories, results):
             if isinstance(result, Exception):
@@ -597,27 +666,30 @@ class AIProviderManager:
                 stride_results[category] = {"error": str(result), "threats": []}
             else:
                 stride_results[category] = result
-        
+
         # Count total threats
         total_threats = sum(
             len(r.get("threats", []))
             for r in stride_results.values()
             if isinstance(r, dict)
         )
-        
+
         logger.info(
             "STRIDE analysis completed: %d categories, %d total threats",
-            len(categories), total_threats
+            len(categories),
+            total_threats,
         )
-        
+
         return {
             "repository_path": str(repository_path),
             "categories": stride_results,
             "total_threats": total_threats,
             "provider": self._primary_provider.PROVIDER_TYPE.value,
         }
-    
-    def _finding_to_enhanced(self, finding: Finding, error_message: str = "") -> EnhancedFinding:
+
+    def _finding_to_enhanced(
+        self, finding: Finding, error_message: str = ""
+    ) -> EnhancedFinding:
         """Convert a Finding to EnhancedFinding without AI enrichment."""
         return EnhancedFinding(
             id=finding.id,
@@ -658,30 +730,30 @@ def get_ai_manager(
     ai_model_override: Optional[str] = None,
     api_key_override: Optional[str] = None,
     ollama_url_override: Optional[str] = None,
-    min_severity: str = AI_MIN_SEVERITY_THRESHOLD
+    min_severity: str = AI_MIN_SEVERITY_THRESHOLD,
 ) -> AIProviderManager:
     """
     Get the AI Provider Manager singleton.
-    
+
     Args:
         cloud_provider: Cloud provider to configure
         ai_provider_override: Optional direct string override ("google", "openai", "anthropic")
         api_key_override: Optional API key material to pass to the provider
         ollama_url_override: Optional URL for local Ollama instance
         min_severity: Minimum severity threshold for AI enrichment
-        
+
     Returns:
         AIProviderManager instance
     """
     global _ai_manager
     if (
-        _ai_manager is None or 
-        _ai_manager.cloud_provider != cloud_provider or 
-        _ai_manager.ai_provider_override != ai_provider_override or
-        _ai_manager.ai_model_override != ai_model_override or
-        _ai_manager.api_key_override != api_key_override or
-        _ai_manager.ollama_url_override != ollama_url_override or
-        _ai_manager.min_severity != min_severity
+        _ai_manager is None
+        or _ai_manager.cloud_provider != cloud_provider
+        or _ai_manager.ai_provider_override != ai_provider_override
+        or _ai_manager.ai_model_override != ai_model_override
+        or _ai_manager.api_key_override != api_key_override
+        or _ai_manager.ollama_url_override != ollama_url_override
+        or _ai_manager.min_severity != min_severity
     ):
         _ai_manager = AIProviderManager(
             cloud_provider=cloud_provider,
@@ -689,6 +761,6 @@ def get_ai_manager(
             ai_model_override=ai_model_override,
             api_key_override=api_key_override,
             ollama_url_override=ollama_url_override,
-            min_severity=min_severity
+            min_severity=min_severity,
         )
     return _ai_manager

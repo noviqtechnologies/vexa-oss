@@ -1,31 +1,36 @@
 """Miscellaneous commands for the CLI."""
+
 import sys
 import click
 from pathlib import Path
 
-from vexa_cli.ui.output import print_banner, print_info, print_warning, print_error, console
+from vexa_cli.ui.output import print_banner, print_info, print_warning, print_error
+
 
 @click.command(name="mcp-server", hidden=True)
 def mcp_server_command():
     """Internal command to start the MCP server."""
     # Import here to avoid circular dependencies
     from vexa_mcp.scanner.server import main as server_main
+
     server_main()
 
 
 @click.command("threat-model", hidden=True)
 @click.argument("path", type=click.Path(exists=True, path_type=Path))
 @click.option(
-    "--provider", "-p",
+    "--provider",
+    "-p",
     type=click.Choice(["google", "aws", "azure"]),
     default="google",
-    help="AI provider for analysis"
+    help="AI provider for analysis",
 )
 @click.option(
-    "--output", "-o",
+    "--output",
+    "-o",
     type=click.Path(path_type=Path),
     default=None,
-    help="Output directory"
+    help="Output directory",
 )
 def threat_model(path: Path, provider: str, output: Path):
     """
@@ -38,10 +43,11 @@ def threat_model(path: Path, provider: str, output: Path):
 @click.command(hidden=True)
 @click.argument("path", type=click.Path(exists=True, path_type=Path))
 @click.option(
-    "--type", "-t",
+    "--type",
+    "-t",
     type=click.Choice(["terraform", "cdk", "cloudformation"]),
     default="terraform",
-    help="IaC type"
+    help="IaC type",
 )
 def validate(path: Path, type: str):
     """
@@ -65,10 +71,11 @@ def matrix(path: Path):
 def list_scanners():
     """List available security scanners from Core."""
     print_banner()
-    
+
     try:
         from vexa.common.models import ScanMode
         from vexa.scanners.engine import get_scanner_engine
+
         engine = get_scanner_engine()
         local_scanners = engine.get_available_scanners(ScanMode.LOCAL)
         all_scanners = engine.get_available_scanners(ScanMode.CONTAINER)
@@ -77,20 +84,19 @@ def list_scanners():
         return
 
     click.echo(click.style("\\n📋 Available Scanners:\\n", bold=True))
-    
+
     click.echo(click.style("Local + Container Mode:", fg="cyan", bold=True))
     for name in local_scanners:
         click.echo(f"  • {name}")
-    
+
     click.echo(click.style("\\nContainer Mode Only:", fg="yellow", bold=True))
     container_only = set(all_scanners) - set(local_scanners)
     for name in container_only:
         click.echo(f"  • {name}")
-    
+
     # Platform specific notes
     if sys.platform == "win32":
         click.echo()
         print_warning("Note for Windows users:")
         click.echo("  • 'semgrep' is not supported natively on Windows.")
         click.echo("  • Use WSL or Docker mode for full coverage.")
-

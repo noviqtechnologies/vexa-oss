@@ -4,7 +4,6 @@ Framework Mapper for Security Findings.
 SS-014: Map findings to security frameworks (CWE, OWASP, MITRE, NIST)
 """
 
-from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from vexa.common.models import Finding
@@ -17,14 +16,14 @@ logger = get_logger(__name__)
 class FrameworkMapper:
     """
     SS-014: Map findings to security frameworks.
-    
+
     Maps security findings to:
     - CWE (Common Weakness Enumeration)
     - OWASP Top 10 (2021)
     - MITRE ATT&CK
     - NIST 800-53 Controls
     """
-    
+
     # CWE to vulnerability type mapping (used for scanners that don't provide CWE)
     CWE_MAPPINGS: Dict[str, List[str]] = {
         "hardcoded_password": ["CWE-259", "CWE-798"],
@@ -40,7 +39,7 @@ class FrameworkMapper:
         "security_misconfiguration": ["CWE-16", "CWE-732"],
         "insecure_crypto": ["CWE-327", "CWE-328"],
     }
-    
+
     # OWASP Top 10 2021 mappings
     OWASP_MAPPINGS: Dict[str, str] = {
         "CWE-89": "A03:2021-Injection",
@@ -63,7 +62,7 @@ class FrameworkMapper:
         "CWE-502": "A08:2021-Software and Data Integrity Failures",
         "CWE-918": "A10:2021-Server-Side Request Forgery",
     }
-    
+
     # MITRE ATT&CK mappings
     MITRE_MAPPINGS: Dict[str, List[str]] = {
         "CWE-78": ["T1059-Command and Scripting Interpreter"],
@@ -74,7 +73,7 @@ class FrameworkMapper:
         "CWE-22": ["T1083-File and Directory Discovery"],
         "CWE-502": ["T1055-Process Injection"],
     }
-    
+
     # NIST 800-53 Control mappings
     NIST_MAPPINGS: Dict[str, List[str]] = {
         "CWE-78": ["SI-10", "SI-3"],
@@ -90,27 +89,27 @@ class FrameworkMapper:
         "CWE-200": ["SC-28", "SC-8"],
         "CWE-312": ["SC-28", "SC-8"],
     }
-    
+
     def map_finding(self, finding: Finding) -> Finding:
         """
         Map a finding to security frameworks.
-        
+
         Args:
             finding: The finding to enrich
-            
+
         Returns:
             The modified Finding object with framework mappings
         """
         # Start with existing CWE IDs from the finding
         cwe_ids = list(finding.cwe_ids) if finding.cwe_ids else []
-        
+
         # Get OWASP category
         if not finding.owasp_category:
             for cwe in cwe_ids:
                 if cwe in self.OWASP_MAPPINGS:
                     finding.owasp_category = self.OWASP_MAPPINGS[cwe]
                     break
-        
+
         # Get MITRE techniques (mapped to mitre_attack_id)
         if not finding.mitre_attack_id:
             for cwe in cwe_ids:
@@ -118,7 +117,7 @@ class FrameworkMapper:
                     # Take the first one for simplicity as it's a single string field
                     finding.mitre_attack_id = self.MITRE_MAPPINGS[cwe][0]
                     break
-        
+
         # Get NIST controls
         nist_controls = list(finding.nist_controls) if finding.nist_controls else []
         for cwe in cwe_ids:
@@ -126,21 +125,21 @@ class FrameworkMapper:
                 for control in self.NIST_MAPPINGS[cwe]:
                     if control not in nist_controls:
                         nist_controls.append(control)
-        
+
         finding.nist_controls = nist_controls
-        
+
         return finding
-    
+
     def map_findings(self, findings: List[Finding]) -> List[Finding]:
         """Map multiple findings to security frameworks."""
         for f in findings:
             self.map_finding(f)
         return findings
-    
+
     def get_cwe_for_type(self, vulnerability_type: str) -> List[str]:
         """Get CWE IDs for a vulnerability type."""
         return self.CWE_MAPPINGS.get(vulnerability_type, [])
-    
+
     def get_owasp_for_cwe(self, cwe_id: str) -> Optional[str]:
         """Get OWASP category for a CWE ID."""
         return self.OWASP_MAPPINGS.get(cwe_id)

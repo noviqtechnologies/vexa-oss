@@ -17,5 +17,3 @@ try:
 except (PackageNotFoundError, NameError, ImportError):
     # Fallback for development where the package is not installed
     __version__ = "1.0.42"
-
-

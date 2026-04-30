@@ -4,8 +4,6 @@ OpenAI GPT AI Provider for Vexa.
 Uses the official `openai` Python SDK.
 """
 
-from typing import Dict, Any, Optional
-
 from vexa.common.logging import get_logger
 from vexa.ai_providers.base import (
     SDKAIProvider,
@@ -21,7 +19,13 @@ class OpenAIWrapper(SDKAIProvider):
     """OpenAI Provider Implementation."""
 
     PROVIDER_TYPE = AIProviderType.OPENAI
-    AUTH_ERROR_KEYWORDS = ("invalid_api_key", "incorrect api key", "authentication", "401", "403")
+    AUTH_ERROR_KEYWORDS = (
+        "invalid_api_key",
+        "incorrect api key",
+        "authentication",
+        "401",
+        "403",
+    )
     RATE_LIMIT_KEYWORDS = ("rate_limit", "quota", "too many requests", "429")
 
     def __init__(self):
@@ -32,6 +36,7 @@ class OpenAIWrapper(SDKAIProvider):
     def _get_client(self):
         try:
             import openai
+
             return openai.AsyncOpenAI(api_key=self._api_key)
         except ImportError:
             raise RuntimeError("openai SDK not installed")
@@ -46,6 +51,7 @@ class OpenAIWrapper(SDKAIProvider):
     def is_available(self) -> bool:
         try:
             import openai  # noqa: F401
+
             return bool(self._api_key)
         except ImportError:
             return False
@@ -54,7 +60,10 @@ class OpenAIWrapper(SDKAIProvider):
         try:
             import openai  # noqa: F401
         except ImportError:
-            return AIProviderStatus.UNAVAILABLE, "OpenAI SDK not found (install with 'pip install openai')"
+            return (
+                AIProviderStatus.UNAVAILABLE,
+                "OpenAI SDK not found (install with 'pip install openai')",
+            )
 
         if not self._api_key:
             return AIProviderStatus.UNAVAILABLE, "VEXA_OPENAI_API_KEY is not set"

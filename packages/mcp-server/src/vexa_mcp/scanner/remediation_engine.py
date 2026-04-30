@@ -80,7 +80,10 @@ class PatchLedger:
                 with open(self.ledger_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     # We only load metadata; entries are session-scoped
-                    logger.debug("Loaded patch ledger with %d historical entries", len(data.get("entries", [])))
+                    logger.debug(
+                        "Loaded patch ledger with %d historical entries",
+                        len(data.get("entries", [])),
+                    )
             except Exception as e:
                 logger.warning("Failed to load patch ledger: %s", e)
 
@@ -141,7 +144,9 @@ class RemediationEngine:
 
     def create_snapshot(self) -> Path:
         """Create a backup snapshot of the workspace for rollback."""
-        self.backup_dir = Path(tempfile.gettempdir()) / f"vexa_backup_{self.workspace_path.name}"
+        self.backup_dir = (
+            Path(tempfile.gettempdir()) / f"vexa_backup_{self.workspace_path.name}"
+        )
         try:
             if self.backup_dir.exists():
                 shutil.rmtree(self.backup_dir)
@@ -191,11 +196,20 @@ class RemediationEngine:
             if line_start < 1 or line_end > len(lines):
                 logger.warning(
                     "Line range [%d-%d] out of bounds for %s (%d lines). Falling back to string match.",
-                    line_start, line_end, file_path, len(lines),
+                    line_start,
+                    line_end,
+                    file_path,
+                    len(lines),
                 )
                 return self._apply_patch_string_match(
-                    target, finding_id, finding_title, severity,
-                    line_start, line_end, original_code, patched_code,
+                    target,
+                    finding_id,
+                    finding_title,
+                    severity,
+                    line_start,
+                    line_end,
+                    original_code,
+                    patched_code,
                 )
 
             # Line-range replacement (0-indexed internally)
@@ -220,7 +234,13 @@ class RemediationEngine:
                 patched_code=patched_code,
             )
             self.ledger.add(entry)
-            logger.info("Patch applied: %s @ L%d-%d (%s)", file_path, line_start, line_end, finding_title)
+            logger.info(
+                "Patch applied: %s @ L%d-%d (%s)",
+                file_path,
+                line_start,
+                line_end,
+                finding_title,
+            )
             return entry
 
         except Exception as e:
@@ -255,10 +275,18 @@ class RemediationEngine:
                     patched_code=patched_code,
                 )
                 self.ledger.add(entry)
-                logger.info("Patch applied (string match fallback): %s (%s)", target, finding_title)
+                logger.info(
+                    "Patch applied (string match fallback): %s (%s)",
+                    target,
+                    finding_title,
+                )
                 return entry
             else:
-                logger.warning("Original code snippet not found in %s for finding %s", target, finding_id)
+                logger.warning(
+                    "Original code snippet not found in %s for finding %s",
+                    target,
+                    finding_id,
+                )
                 return None
         except Exception as e:
             logger.error("String-match patch failed for %s: %s", target, e)
@@ -281,7 +309,9 @@ class RemediationEngine:
             logger.error("Rollback failed: %s", e)
             return False
 
-    def generate_fix_plan(self, findings: list, severity_threshold: str = "medium") -> str:
+    def generate_fix_plan(
+        self, findings: list, severity_threshold: str = "medium"
+    ) -> str:
         """Generate a token-efficient, LLM-readable fix plan from findings."""
         severity_map = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
         target_val = severity_map.get(severity_threshold.lower(), 2)

@@ -4,8 +4,6 @@ Anthropic Claude AI Provider for Vexa.
 Uses the official `anthropic` Python SDK.
 """
 
-from typing import Dict, Any, Optional
-
 from vexa.common.logging import get_logger
 from vexa.ai_providers.base import (
     SDKAIProvider,
@@ -32,6 +30,7 @@ class AnthropicWrapper(SDKAIProvider):
     def _get_client(self):
         try:
             import anthropic
+
             return anthropic.AsyncAnthropic(api_key=self._api_key)
         except ImportError:
             raise RuntimeError("anthropic SDK not installed")
@@ -46,6 +45,7 @@ class AnthropicWrapper(SDKAIProvider):
     def is_available(self) -> bool:
         try:
             import anthropic  # noqa: F401
+
             return bool(self._api_key)
         except ImportError:
             return False
@@ -54,7 +54,10 @@ class AnthropicWrapper(SDKAIProvider):
         try:
             import anthropic  # noqa: F401
         except ImportError:
-            return AIProviderStatus.UNAVAILABLE, "Anthropic SDK not found (install with 'pip install anthropic')"
+            return (
+                AIProviderStatus.UNAVAILABLE,
+                "Anthropic SDK not found (install with 'pip install anthropic')",
+            )
 
         if not self._api_key:
             return AIProviderStatus.UNAVAILABLE, "VEXA_ANTHROPIC_API_KEY is not set"

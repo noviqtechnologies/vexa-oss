@@ -24,22 +24,30 @@ import sys
 import difflib
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import click
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.prompt import Confirm
 from rich.progress import (
-    Progress, SpinnerColumn, TextColumn, BarColumn,
-    TaskProgressColumn, TimeElapsedColumn
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    TaskProgressColumn,
+    TimeElapsedColumn,
 )
 
-from vexa.common.models import ScanMode, JobStatus, CloudProvider
+from vexa.common.models import ScanMode, CloudProvider
 from vexa.common.cloud_provider import ProviderAvailability
 from vexa.common.config_manager import load_config
 from vexa_cli.ui.output import (
-    print_banner, print_success, print_error, print_info, print_warning, console
+    print_banner,
+    print_error,
+    print_info,
+    print_warning,
+    console,
 )
 
 
@@ -47,28 +55,61 @@ from vexa_cli.ui.output import (
 # The Fix Command
 # ---------------------------------------------------------------------------
 
+
 @click.command()
 @click.argument("path", type=click.Path(exists=True, path_type=Path), default=".")
-@click.option("--limit", "-n", type=int, default=3,
-              help="Maximum number of fixes to present. Default: 3.")
-@click.option("--severity", type=click.Choice(
-    ["critical", "high", "medium", "low"], case_sensitive=False),
+@click.option(
+    "--limit",
+    "-n",
+    type=int,
+    default=3,
+    help="Maximum number of fixes to present. Default: 3.",
+)
+@click.option(
+    "--severity",
+    type=click.Choice(["critical", "high", "medium", "low"], case_sensitive=False),
     default="medium",
-    help="Minimum severity to fix. Default: medium.")
-@click.option("--ai-provider", type=click.Choice(
-    ["google", "openai", "anthropic", "ollama", "none"], case_sensitive=False),
+    help="Minimum severity to fix. Default: medium.",
+)
+@click.option(
+    "--ai-provider",
+    type=click.Choice(
+        ["google", "openai", "anthropic", "ollama", "none"], case_sensitive=False
+    ),
     default=None,
-    help="AI provider override. Default: auto-detect from config.")
-@click.option("--ai-model", type=str, default=None,
-    help="AI model name override (e.g., 'llama3:8b', 'mistral').")
-@click.option("--dry-run", is_flag=True, default=False,
-              help="Show what would be fixed without applying changes.")
-@click.option("--yes", "-y", is_flag=True, default=False,
-              help="Apply all fixes without asking for confirmation.")
-@click.option("--output", type=click.Path(path_type=Path), default=None,
-              help="Path for the fix report.")
-@click.option("--incremental", is_flag=True, default=False,
-              help="Only fix issues in files changed since last commit.")
+    help="AI provider override. Default: auto-detect from config.",
+)
+@click.option(
+    "--ai-model",
+    type=str,
+    default=None,
+    help="AI model name override (e.g., 'llama3:8b', 'mistral').",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Show what would be fixed without applying changes.",
+)
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    default=False,
+    help="Apply all fixes without asking for confirmation.",
+)
+@click.option(
+    "--output",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Path for the fix report.",
+)
+@click.option(
+    "--incremental",
+    is_flag=True,
+    default=False,
+    help="Only fix issues in files changed since last commit.",
+)
 def fix(
     path: Path,
     limit: int,
@@ -88,17 +129,19 @@ def fix(
     required.
     """
     try:
-        asyncio.run(_run_fix(
-            path=path,
-            limit=limit,
-            severity=severity,
-            ai_provider_override=ai_provider,
-            ai_model_override=ai_model,
-            dry_run=dry_run,
-            auto_apply=yes,
-            output_path=output,
-            incremental=incremental,
-        ))
+        asyncio.run(
+            _run_fix(
+                path=path,
+                limit=limit,
+                severity=severity,
+                ai_provider_override=ai_provider,
+                ai_model_override=ai_model,
+                dry_run=dry_run,
+                auto_apply=yes,
+                output_path=output,
+                incremental=incremental,
+            )
+        )
     except KeyboardInterrupt:
         console.print("\n[dim]Fix cancelled.[/dim]")
         sys.exit(0)
@@ -111,6 +154,7 @@ def fix(
 # ---------------------------------------------------------------------------
 # Core Fix Orchestration
 # ---------------------------------------------------------------------------
+
 
 async def _run_fix(
     path: Path,
@@ -135,27 +179,42 @@ async def _run_fix(
     from vexa.ai_providers.triage import prioritise_findings
 
     import logging
+
     # Suppress noisy loggers so the fix output is clean
-    for logger_name in ["vexa", "mcp", "fastmcp", "starlette", "uvicorn", "httpcore", "httpx"]:
+    for logger_name in [
+        "vexa",
+        "mcp",
+        "fastmcp",
+        "starlette",
+        "uvicorn",
+        "httpcore",
+        "httpx",
+    ]:
         logging.getLogger(logger_name).setLevel(logging.WARNING)
 
     path = path.resolve()
-    
+
     # ── ZF-01 Zero-Friction Onboarding ─────────────────────────────────
     config_exists = (path / ".vexa.yml").exists() or (path / ".vexa.yaml").exists()
-    has_env_keys = any(os.environ.get(k) for k in ["GOOGLE_API_KEY", "VEXA_ANTHROPIC_API_KEY", "VEXA_OPENAI_API_KEY"])
-    
+    has_env_keys = any(
+        os.environ.get(k)
+        for k in ["GOOGLE_API_KEY", "VEXA_ANTHROPIC_API_KEY", "VEXA_OPENAI_API_KEY"]
+    )
+
     if not config_exists and not ai_provider_override and not has_env_keys:
-        console.print("\n[bold deep_sky_blue1]Welcome to Vexa! No configuration file found.[/bold deep_sky_blue1]")
+        console.print(
+            "\n[bold deep_sky_blue1]Welcome to Vexa! No configuration file found.[/bold deep_sky_blue1]"
+        )
         try:
             from vexa_cli.commands.init import configure_ai
+
             ai_config = configure_ai()
             if ai_config["enabled"]:
                 ai_provider_override = ai_config["provider"]
         except ImportError:
             pass
         console.print()
-        
+
     config = load_config(path)
 
     # ── Resolve AI provider ────────────────────────────────────────────
@@ -163,9 +222,10 @@ async def _run_fix(
     is_local_mode = cloud_provider == CloudProvider.OLLAMA
 
     # ── Check AI provider availability ─────────────────────────────────
-    from vexa.common.cloud_provider import ProviderAvailability
     if cloud_provider not in (CloudProvider.NONE, CloudProvider.OLLAMA):
-        status = await ProviderAvailability.check_provider(cloud_provider, check_quota=False)
+        status = await ProviderAvailability.check_provider(
+            cloud_provider, check_quota=False
+        )
         if not status["available"]:
             print_warning(f"AI provider not ready: {status['error']}")
             print_info("Running scan without AI analysis. Fixes will be less accurate.")
@@ -174,12 +234,14 @@ async def _run_fix(
     if cloud_provider == CloudProvider.OLLAMA:
         # Verify Ollama is running before scanning
         from vexa.ai_providers.ollama_provider import get_ollama_wrapper
+
         ollama = get_ollama_wrapper(
             model=config.ai.model,
             host=config.ai.ollama_host,
             port=config.ai.ollama_port,
         )
         from vexa.ai_providers.base import AIProviderStatus
+
         oll_status, oll_msg = await ollama.check_availability()
         if oll_status != AIProviderStatus.AVAILABLE:
             print_error(oll_msg)
@@ -187,17 +249,20 @@ async def _run_fix(
 
     # ── Print Header ───────────────────────────────────────────────────
     from vexa.common.cloud_provider import PROVIDER_CAPABILITIES
+
     _print_fix_header(
         version=__version__,
         path=path,
         cloud_provider=cloud_provider,
         severity=severity,
         config=config,
-        capabilities=PROVIDER_CAPABILITIES.get(cloud_provider)
+        capabilities=PROVIDER_CAPABILITIES.get(cloud_provider),
     )
     console.print()
     if sys.platform == "win32":
-        print_warning("Semgrep is not supported natively on Windows. For full coverage, use WSL2 or Docker mode (--mode container).")
+        print_warning(
+            "Semgrep is not supported natively on Windows. For full coverage, use WSL2 or Docker mode (--mode container)."
+        )
 
     # ── Initialize AI manager ──────────────────────────────────────────
     ai_manager = get_ai_manager(
@@ -213,10 +278,15 @@ async def _run_fix(
     engine = get_scanner_engine()
     job_manager = get_job_manager()
 
-    from vexa_cli.commands._scan_helpers import run_scan_with_job_manager, poll_scan_progress
+    from vexa_cli.commands._scan_helpers import (
+        run_scan_with_job_manager,
+        poll_scan_progress,
+    )
 
     scan_job_id = await run_scan_with_job_manager(
-        engine, job_manager, path,
+        engine,
+        job_manager,
+        path,
         scanners=None,  # Use all available
         mode=ScanMode.LOCAL,
         timeout=480,
@@ -229,7 +299,9 @@ async def _run_fix(
         5: "Starting security analysis...",
         15: "Starting security analysis...",
         75: "Analysing your code...",
-        90: "AI is reviewing findings..." if cloud_provider != CloudProvider.NONE else "Processing results...",
+        90: "AI is reviewing findings..."
+        if cloud_provider != CloudProvider.NONE
+        else "Processing results...",
         100: "Finishing up...",
     }
     prefix = "[local] " if is_local_mode else ""
@@ -246,8 +318,12 @@ async def _run_fix(
         scan_bar = progress_bar.add_task("Scanning...", total=100)
         try:
             await poll_scan_progress(
-                job_manager, scan_job_id, progress_bar, scan_bar,
-                description_map=fix_description_map, prefix=prefix,
+                job_manager,
+                scan_job_id,
+                progress_bar,
+                scan_bar,
+                description_map=fix_description_map,
+                prefix=prefix,
             )
         except Exception as e:
             print_error(f"Analysis failed: {e}")
@@ -268,10 +344,14 @@ async def _run_fix(
         if result.errors:
             console.print()
             print_warning("Scan completed with errors.")
-            print_info(f"No security issues were found in the tools that succeeded on [bold]{path}[/bold].")
+            print_info(
+                f"No security issues were found in the tools that succeeded on [bold]{path}[/bold]."
+            )
             print_info("However, some security checks were skipped due to errors.")
             if false_positives_count > 0:
-                console.print(f"   [dim](Filtered out {false_positives_count} false alarm{'s' if false_positives_count != 1 else ''})[/dim]")
+                console.print(
+                    f"   [dim](Filtered out {false_positives_count} false alarm{'s' if false_positives_count != 1 else ''})[/dim]"
+                )
         else:
             _print_no_issues_found(false_positives_count, path)
         sys.exit(0)
@@ -292,31 +372,43 @@ async def _run_fix(
     severity_counts = {}
     for f in findings:
         severity_counts[f.severity] = severity_counts.get(f.severity, 0) + 1
-    
+
     console.print()
     summary_content = ""
     for sev in ["critical", "high", "medium", "low"]:
         count = severity_counts.get(sev, 0)
         if count > 0:
-            color = {"critical": "bold red", "high": "orange_red1", "medium": "gold1", "low": "deep_sky_blue1"}[sev]
+            color = {
+                "critical": "bold red",
+                "high": "orange_red1",
+                "medium": "gold1",
+                "low": "deep_sky_blue1",
+            }[sev]
             summary_content += f"  [bold {color}]• {sev.upper():<8}:[/bold {color}] [white]{count} issue{'s' if count != 1 else ''}[/white]\n"
-    
+
     if false_positives_count > 0:
         summary_content += f"\n[dim]Filtered out {false_positives_count} false alarm{'s' if false_positives_count != 1 else ''}.[/dim]"
-    
-    console.print(Panel(summary_content.strip(), title="[bold white]Overall Scan Results[/bold white]", border_style="dim", expand=False))
+
+    console.print(
+        Panel(
+            summary_content.strip(),
+            title="[bold white]Overall Scan Results[/bold white]",
+            border_style="dim",
+            expand=False,
+        )
+    )
 
     # ── Phase 3: Present & Fix (Batched) ───────────────────────────────
     fixes_applied = 0
     fixes_skipped = 0
     dry_run_diffs = []
-    
+
     current_idx = 0
     total_fixable = len(all_prioritised)
-    
+
     while current_idx < total_fixable:
-        batch = all_prioritised[current_idx:current_idx + limit]
-        
+        batch = all_prioritised[current_idx : current_idx + limit]
+
         console.print(
             f"\n🔍 [bold]AI Triage Selection:[/bold] Presenting [bold]{len(batch)}[/bold] top "
             f"issue{'s' if len(batch) != 1 else ''} for immediate fix "
@@ -335,12 +427,14 @@ async def _run_fix(
             console.print()
 
             # Get triage metadata (set by prioritise_findings)
-            plain_title = getattr(finding, '_plain_title', finding.title)
-            plain_explanation = getattr(finding, '_plain_explanation', finding.description)
-            confidence = getattr(finding, '_fix_confidence', 50.0)
-            confidence_level = getattr(finding, '_confidence_level', 'Medium')
+            plain_title = getattr(finding, "_plain_title", finding.title)
+            plain_explanation = getattr(
+                finding, "_plain_explanation", finding.description
+            )
+            confidence = getattr(finding, "_fix_confidence", 50.0)
+            confidence_level = getattr(finding, "_confidence_level", "Medium")
 
-            remediation_code = getattr(finding, 'remediation_code', '')
+            remediation_code = getattr(finding, "remediation_code", "")
             has_fix = (
                 remediation_code
                 and len(remediation_code.strip()) > 10
@@ -353,19 +447,32 @@ async def _run_fix(
             if confidence < 50.0 or not has_fix:
                 # ── Low confidence / no fix — awareness only ───────────
                 _print_low_confidence_issue(
-                    finding_number_overall, total_fixable, risk_label,
-                    finding.file_path, finding.line_start,
-                    plain_title, plain_explanation,
-                    confidence, confidence_level,
+                    finding_number_overall,
+                    total_fixable,
+                    risk_label,
+                    finding.file_path,
+                    finding.line_start,
+                    plain_title,
+                    plain_explanation,
+                    confidence,
+                    confidence_level,
                 )
                 fixes_skipped += 1
             else:
                 # ── Fixable issue — show diff and ask ──────────────────
                 applied = _present_and_apply_fix(
-                    finding_number_overall, total_fixable, risk_label,
-                    finding, plain_title, plain_explanation,
-                    confidence, confidence_level,
-                    path, dry_run, auto_apply, is_local_mode,
+                    finding_number_overall,
+                    total_fixable,
+                    risk_label,
+                    finding,
+                    plain_title,
+                    plain_explanation,
+                    confidence,
+                    confidence_level,
+                    path,
+                    dry_run,
+                    auto_apply,
+                    is_local_mode,
                 )
 
                 if dry_run and has_fix:
@@ -378,9 +485,9 @@ async def _run_fix(
                     fixes_applied += 1
                 else:
                     fixes_skipped += 1
-        
+
         current_idx += limit
-        
+
         # Prompt user to continue if more issues remain
         if current_idx < total_fixable and not dry_run and not auto_apply:
             remaining = total_fixable - current_idx
@@ -403,7 +510,9 @@ async def _run_fix(
     console.print("─" * 60)
 
     if dry_run:
-        console.print(f"\n[bold]📋 Dry run complete.[/bold] {len(dry_run_diffs)} fix{'es' if len(dry_run_diffs) != 1 else ''} ready to apply.")
+        console.print(
+            f"\n[bold]📋 Dry run complete.[/bold] {len(dry_run_diffs)} fix{'es' if len(dry_run_diffs) != 1 else ''} ready to apply."
+        )
         if dry_run_diffs:
             console.print("\n[dim]Apply these fixes with:[/dim]")
             console.print("  [bold]vexa fix . --yes[/bold]")
@@ -418,12 +527,18 @@ async def _run_fix(
                 f"\n[bold green]✅ {fixes_applied} fix{'es' if fixes_applied != 1 else ''} applied.[/bold green]"
             )
         if fixes_skipped > 0:
-            reason = "AI enrichment unavailable" if cloud_provider == CloudProvider.NONE else "low confidence"
+            reason = (
+                "AI enrichment unavailable"
+                if cloud_provider == CloudProvider.NONE
+                else "low confidence"
+            )
             console.print(
                 f"[dim]{fixes_skipped} issue{'s' if fixes_skipped != 1 else ''} shown for awareness only ({reason}).[/dim]"
             )
         if fixes_applied == 0 and fixes_skipped == 0:
-            console.print("[bold green]No fixes needed — your code looks good![/bold green]")
+            console.print(
+                "[bold green]No fixes needed — your code looks good![/bold green]"
+            )
 
     console.print()
     sys.exit(0)
@@ -433,9 +548,11 @@ async def _run_fix(
 # AI Provider Resolution
 # ---------------------------------------------------------------------------
 
+
 def _resolve_ai_provider(config, ai_provider_override: Optional[str]) -> CloudProvider:
     """Delegate to shared helper. Kept for backward compatibility."""
     from vexa_cli.commands._scan_helpers import resolve_ai_provider
+
     return resolve_ai_provider(config, ai_provider_override)
 
 
@@ -443,19 +560,36 @@ def _resolve_ai_provider(config, ai_provider_override: Optional[str]) -> CloudPr
 # Output Formatting — PRD Section 8.3/8.4
 # ---------------------------------------------------------------------------
 
-def _print_fix_header(version: str, path: Path, cloud_provider: CloudProvider, severity: str, config, capabilities=None):
+
+def _print_fix_header(
+    version: str,
+    path: Path,
+    cloud_provider: CloudProvider,
+    severity: str,
+    config,
+    capabilities=None,
+):
     """Print the fix command header with professional configuration summary."""
-    from vexa_cli.ui.output import print_banner
     print_banner(version=version, is_beta=True)
 
     start_time = datetime.now()
-    console.print(f"\n[bold white]🚀 Fix Initiated:[/bold white] [bright_cyan]{start_time.strftime('%Y-%m-%d %H:%M:%S')}[/bright_cyan]")
+    console.print(
+        f"\n[bold white]🚀 Fix Initiated:[/bold white] [bright_cyan]{start_time.strftime('%Y-%m-%d %H:%M:%S')}[/bright_cyan]"
+    )
     console.print("─" * 50)
 
     # Resolve display name
-    display_map = {"google": "GOOGLE GEMINI", "openai": "OPENAI", "anthropic": "ANTHROPIC", "ollama": "LOCAL OLLAMA", "none": "None"}
-    effective_ai_display = display_map.get(cloud_provider.value.lower(), cloud_provider.value.upper())
-    
+    display_map = {
+        "google": "GOOGLE GEMINI",
+        "openai": "OPENAI",
+        "anthropic": "ANTHROPIC",
+        "ollama": "LOCAL OLLAMA",
+        "none": "None",
+    }
+    effective_ai_display = display_map.get(
+        cloud_provider.value.lower(), cloud_provider.value.upper()
+    )
+
     # Check if a model override is active for display
     if cloud_provider == CloudProvider.OLLAMA and hasattr(config.ai, "model"):
         effective_ai_display = f"LOCAL OLLAMA ({config.ai.model})"
@@ -467,11 +601,20 @@ def _print_fix_header(version: str, path: Path, cloud_provider: CloudProvider, s
         f"[bold sky_blue1]Provider:[/bold sky_blue1] [bright_cyan]{effective_ai_display}[/bright_cyan]\n"
         f"[dim]AI Review: {'✅' if capabilities and capabilities.code_review_enabled else '❌'}  |  FP Detection: {'✅' if capabilities and capabilities.false_positive_detection else '❌'}[/dim]"
     )
-    
-    if cloud_provider == CloudProvider.OLLAMA:
-        conf_content += "\n\n[bold green]🔒 Privacy Vault Active[/bold green] — Zero data egress."
 
-    console.print(Panel(conf_content, title="[bold white]Fix Configuration[/bold white]", border_style="bright_cyan", expand=False))
+    if cloud_provider == CloudProvider.OLLAMA:
+        conf_content += (
+            "\n\n[bold green]🔒 Privacy Vault Active[/bold green] — Zero data egress."
+        )
+
+    console.print(
+        Panel(
+            conf_content,
+            title="[bold white]Fix Configuration[/bold white]",
+            border_style="bright_cyan",
+            expand=False,
+        )
+    )
 
 
 def _print_no_issues_found(false_positives_count: int, path: Path):
@@ -491,7 +634,9 @@ def _print_no_issues_found(false_positives_count: int, path: Path):
 def _print_no_fixable_issues(total_findings: int, false_positives_count: int):
     """Print message when there are findings but none are fixable."""
     console.print()
-    console.print("[bold yellow]📋 Issues found, but none are ready for auto-fix.[/bold yellow]")
+    console.print(
+        "[bold yellow]📋 Issues found, but none are ready for auto-fix.[/bold yellow]"
+    )
     console.print(
         f"   Found {total_findings} issue{'s' if total_findings != 1 else ''}, "
         f"but the AI confidence is too low to suggest automatic fixes."
@@ -501,10 +646,15 @@ def _print_no_fixable_issues(total_findings: int, false_positives_count: int):
 
 
 def _print_low_confidence_issue(
-    idx: int, total: int, risk_label: str,
-    file_path: str, line_start: int,
-    plain_title: str, plain_explanation: str,
-    confidence: float, confidence_level: str,
+    idx: int,
+    total: int,
+    risk_label: str,
+    file_path: str,
+    line_start: int,
+    plain_title: str,
+    plain_explanation: str,
+    confidence: float,
+    confidence_level: str,
 ):
     """
     Print a finding where the AI is not confident enough to fix.
@@ -525,10 +675,17 @@ def _print_low_confidence_issue(
 
 
 def _present_and_apply_fix(
-    idx: int, total: int, risk_label: str,
-    finding, plain_title: str, plain_explanation: str,
-    confidence: float, confidence_level: str,
-    workspace_path: Path, dry_run: bool, auto_apply: bool,
+    idx: int,
+    total: int,
+    risk_label: str,
+    finding,
+    plain_title: str,
+    plain_explanation: str,
+    confidence: float,
+    confidence_level: str,
+    workspace_path: Path,
+    dry_run: bool,
+    auto_apply: bool,
     is_local_mode: bool,
 ) -> bool:
     """
@@ -542,7 +699,9 @@ def _present_and_apply_fix(
     after_code = finding.remediation_code or ""
 
     # Determine confidence color
-    conf_color = "green" if confidence >= 70 else "yellow" if confidence >= 40 else "red"
+    conf_color = (
+        "green" if confidence >= 70 else "yellow" if confidence >= 40 else "red"
+    )
 
     # Build the panel content
     content = (
@@ -556,13 +715,23 @@ def _present_and_apply_fix(
     if is_local_mode:
         content += "\n[dim]🔒 Analysed locally[/dim]"
 
-    console.print(Panel(content, border_style="red" if "CRITICAL" in risk_label or "HIGH" in risk_label else "yellow", expand=True))
+    console.print(
+        Panel(
+            content,
+            border_style="red"
+            if "CRITICAL" in risk_label or "HIGH" in risk_label
+            else "yellow",
+            expand=True,
+        )
+    )
 
     # Show the diff
     if before_code.strip() and after_code.strip():
         console.print("\n[bold]Here is the fix:[/bold]\n")
         console.print(f"  [red]Before:[/red]   {before_code.strip().split(chr(10))[0]}")
-        console.print(f"  [green]After:[/green]    {after_code.strip().split(chr(10))[0]}")
+        console.print(
+            f"  [green]After:[/green]    {after_code.strip().split(chr(10))[0]}"
+        )
 
         # Show implementation steps if available
         if finding.implementation_steps:
@@ -571,7 +740,11 @@ def _present_and_apply_fix(
                 console.print(f"  [dim]💡 {step}[/dim]")
     elif after_code.strip():
         console.print("\n[bold]Suggested fix:[/bold]")
-        console.print(Syntax(after_code.strip()[:500], "python", theme="monokai", line_numbers=False))
+        console.print(
+            Syntax(
+                after_code.strip()[:500], "python", theme="monokai", line_numbers=False
+            )
+        )
 
     if dry_run:
         console.print("\n[dim]  (Dry run — fix not applied)[/dim]")
@@ -581,10 +754,14 @@ def _present_and_apply_fix(
     if auto_apply:
         applied = _apply_fix(finding, workspace_path)
         if applied:
-            console.print(f"\n[bold green]✅ Fixed.[/bold green] {_clean_file_path(finding.file_path)} updated.")
+            console.print(
+                f"\n[bold green]✅ Fixed.[/bold green] {_clean_file_path(finding.file_path)} updated."
+            )
             return True
         else:
-            console.print(f"\n[bold yellow]⚠ Could not apply fix to {_clean_file_path(finding.file_path)}.[/bold yellow]")
+            console.print(
+                f"\n[bold yellow]⚠ Could not apply fix to {_clean_file_path(finding.file_path)}.[/bold yellow]"
+            )
             return False
 
     try:
@@ -600,11 +777,17 @@ def _present_and_apply_fix(
     if apply:
         applied = _apply_fix(finding, workspace_path)
         if applied:
-            console.print(f"\n[bold green]✅ Fixed.[/bold green] {_clean_file_path(finding.file_path)} updated.")
+            console.print(
+                f"\n[bold green]✅ Fixed.[/bold green] {_clean_file_path(finding.file_path)} updated."
+            )
             return True
         else:
-            console.print(f"\n[bold yellow]⚠ Could not apply fix automatically.[/bold yellow]")
-            console.print("[dim]The fix is shown above — you can apply it manually.[/dim]")
+            console.print(
+                "\n[bold yellow]⚠ Could not apply fix automatically.[/bold yellow]"
+            )
+            console.print(
+                "[dim]The fix is shown above — you can apply it manually.[/dim]"
+            )
             return False
     else:
         console.print("[dim]Skipped.[/dim]")
@@ -614,6 +797,7 @@ def _present_and_apply_fix(
 # ---------------------------------------------------------------------------
 # Fix Application
 # ---------------------------------------------------------------------------
+
 
 def _apply_fix(finding, workspace_path: Path) -> bool:
     """
@@ -648,7 +832,7 @@ def _apply_fix(finding, workspace_path: Path) -> bool:
     except ImportError:
         # MCP server package not installed — do inline fix
         return _apply_fix_inline(finding, workspace_path)
-    except Exception as e:
+    except Exception:
         return False
 
 
@@ -680,7 +864,7 @@ def _apply_fix_inline(finding, workspace_path: Path) -> bool:
         if patched_code and not patched_code.endswith("\n"):
             patched_code += "\n"
 
-        before = lines[:line_start - 1]
+        before = lines[: line_start - 1]
         after = lines[line_end:]
         new_content = "".join(before) + patched_code + "".join(after)
         target.write_text(new_content, encoding="utf-8")
@@ -693,6 +877,7 @@ def _apply_fix_inline(finding, workspace_path: Path) -> bool:
 # ---------------------------------------------------------------------------
 # Diff Generation (for --dry-run)
 # ---------------------------------------------------------------------------
+
 
 def _generate_unified_diff(finding, workspace_path: Path) -> Optional[str]:
     """Generate a unified diff for a single fix."""
@@ -717,7 +902,7 @@ def _generate_unified_diff(finding, workspace_path: Path) -> Optional[str]:
         if not patched_code.endswith("\n"):
             patched_code += "\n"
 
-        before = original_lines[:line_start - 1]
+        before = original_lines[: line_start - 1]
         after = original_lines[line_end:]
         new_lines = before + [patched_code] + after
 
@@ -735,6 +920,7 @@ def _generate_unified_diff(finding, workspace_path: Path) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
+
 
 def _clean_file_path(file_path: str) -> str:
     """

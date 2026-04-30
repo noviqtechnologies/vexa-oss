@@ -1,13 +1,12 @@
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from pathlib import Path
+from unittest.mock import AsyncMock, patch
 from vexa.ai_providers._legacy.azure_cli import (
     AzurePromptBuilder,
-    AzureCLIExecutor,
     AzureMarkdownParser,
-    AzureCLIWrapper
+    AzureCLIWrapper,
 )
 from vexa.common.models import Finding, AzureEnhancedFinding
+
 
 @pytest.fixture
 def sample_finding():
@@ -20,8 +19,9 @@ def sample_finding():
         file_path="app.py",
         line_start=10,
         line_end=10,
-        code_snippet="password = 'secret'"
+        code_snippet="password = 'secret'",
     )
+
 
 class TestAzurePromptBuilder:
     def test_build_batch_prompt(self, sample_finding):
@@ -30,6 +30,7 @@ class TestAzurePromptBuilder:
         assert "TestApp" in prompt
         assert "Hardcoded Password" in prompt
         assert "Azure Security Benchmark" in prompt
+
 
 class TestAzureMarkdownParser:
     def test_parse_valid_response(self, sample_finding):
@@ -88,6 +89,7 @@ Data Protection
         assert finding.azure_security_benchmark_pillar == "Data Protection"
         assert "https://learn.microsoft.com/azure/security" in finding.azure_doc_links
 
+
 class TestAzureCLIWrapper:
     @pytest.mark.asyncio
     @patch("shutil.which")
@@ -103,12 +105,12 @@ class TestAzureCLIWrapper:
     @patch("asyncio.create_subprocess_exec")
     async def test_check_availability_available(self, mock_exec, mock_which):
         mock_which.return_value = "/usr/bin/az"
-        
+
         mock_process = AsyncMock()
         mock_process.returncode = 0
         mock_process.communicate.return_value = (b"OK", b"")
         mock_exec.return_value = mock_process
-        
+
         wrapper = AzureCLIWrapper()
         status, msg = await wrapper.check_availability()
         assert status.value == "available"

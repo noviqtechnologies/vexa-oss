@@ -9,10 +9,10 @@ file, and the input comes from a hardcoded fixture — likely a false positive."
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from vexa.common.logging import get_logger
-from vexa.rag.indexer import ASTNode, WorkspaceIndexer
+from vexa.rag.indexer import WorkspaceIndexer
 from vexa.rag.vector_store import LocalVectorStore
 
 logger = get_logger(__name__)
@@ -43,7 +43,9 @@ class RAGContextBuilder:
 
         # Populate vector store with node context strings
         for i, node in enumerate(self.indexer.nodes):
-            doc_text = f"{node.name} {node.signature} {node.docstring} {' '.join(node.calls)}"
+            doc_text = (
+                f"{node.name} {node.signature} {node.docstring} {' '.join(node.calls)}"
+            )
             self.vector_store.add_document(
                 doc_id=f"node_{i}",
                 text=doc_text,
@@ -52,7 +54,11 @@ class RAGContextBuilder:
 
         self.vector_store.build_index()
         self._indexed = True
-        logger.info("RAG index built: %d nodes, %d vector documents.", node_count, self.vector_store.document_count)
+        logger.info(
+            "RAG index built: %d nodes, %d vector documents.",
+            node_count,
+            self.vector_store.document_count,
+        )
         return node_count
 
     def get_context(self, finding: Any) -> str:
@@ -82,7 +88,9 @@ class RAGContextBuilder:
             rel_path = file_path
 
         if self.indexer.is_test_file(rel_path):
-            context_parts.append(f"[TEST FILE] {rel_path} is a test file. Findings in test code are more likely false positives.")
+            context_parts.append(
+                f"[TEST FILE] {rel_path} is a test file. Findings in test code are more likely false positives."
+            )
 
         # 2. Enclosing scope context (which function/class contains this line?)
         enclosing = self.indexer.get_nodes_at_line(rel_path, line_start)
@@ -96,7 +104,9 @@ class RAGContextBuilder:
                 callers = self.indexer.get_callers_of(node.name)
                 if callers:
                     caller_names = [f"{c.name} ({c.file_path})" for c in callers[:5]]
-                    context_parts.append(f"[CALLERS] {node.name} is called by: {', '.join(caller_names)}")
+                    context_parts.append(
+                        f"[CALLERS] {node.name} is called by: {', '.join(caller_names)}"
+                    )
 
         # 4. Semantic similarity search
         query = f"{title} {code_snippet}"

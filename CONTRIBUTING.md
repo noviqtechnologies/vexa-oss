@@ -30,35 +30,24 @@ This section guides you through submitting an enhancement suggestion for Vexa, i
 
 Unsure where to begin contributing to Vexa? You can start by looking through these `beginner` and `help-wanted` issues.
 
-#### Local Development Setup
+#### Pull Request Requirements
 
-Vexa uses `uv` for workspace management.
+To maintain high quality and prevent "AI slop" (automated, low-quality PRs), every submission must meet these criteria:
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/noviqtechnologies/vexa-oss.git
-   cd vexa-oss
-   ```
+* **Tests**: All new features or bug fixes MUST include corresponding tests.
+* **Documentation**: Update relevant documentation (README, guides) for any user-facing changes.
+* **Linting**: PRs must pass `ruff check` and `ruff format`.
+* **Description**: Provide a clear explanation of *why* the change is needed. If the PR was generated or assisted by AI, you MUST disclose which model was used and verify all code for correctness.
+* **No Large Blobs**: Avoid committing large binary files or generated artifacts.
 
-2. Install dependencies:
-   ```bash
-   uv sync
-   ```
+## 🏛️ Governance
 
-3. Run tests:
-   ```bash
-   pytest
-   ```
+Vexa is currently maintained by **Noviq Technologies**. For more details on how the project is managed and how decisions are made, please see our [GOVERNANCE.md](GOVERNANCE.md) file.
 
-## Styleguides
 
-### Python Styleguide
+## 💬 Community & Communication
 
-We follow PEP 8 and use `ruff` for formatting and linting.
+* **GitHub Discussions**: For general questions and architectural proposals.
+* **Issues**: For bug reports and feature requests.
+* **Discord**: [Join our community](https://discord.gg/vexa) (Placeholder)
 
-### Commit Messages
-
-* Use the present tense ("Add feature" not "Added feature")
-* Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
-* Limit the first line to 72 characters or less
-* Reference issues and pull requests liberally after the first line

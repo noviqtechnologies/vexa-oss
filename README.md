@@ -109,9 +109,11 @@ Vexa exposes an MCP server that works with any MCP-compatible IDE:
 | `vexa-cli` | Command-line interface (Click + Rich) |
 | `vexa-mcp` | MCP server for IDE integration (FastMCP) |
 
-## 🤝 Contributing
+## 💬 Community
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. Issues and PRs are welcome.
+* **Discussions**: [GitHub Discussions](https://github.com/noviqtechnologies/vexa-oss/discussions)
+* **Issues**: [Bug Reports & Feature Requests](https://github.com/noviqtechnologies/vexa-oss/issues)
+* **Website**: [vexasec.io](https://vexasec.io/)
 
 ## 📄 License
 
@@ -119,4 +121,5 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
-[Documentation](docs/QUICKSTART.md) | [Website](https://usevexa.dev)
+[Documentation](docs/QUICKSTART.md) | [Website](https://vexasec.io/)
+

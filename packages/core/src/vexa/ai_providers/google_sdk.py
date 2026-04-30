@@ -10,7 +10,7 @@ SS-010: False positive detection
 
 import asyncio
 import sys
-from typing import List, Dict, Any, Optional
+from typing import Optional
 
 from vexa.common.logging import get_logger
 from vexa.ai_providers.base import (
@@ -32,8 +32,20 @@ class GeminiSDKWrapper(SDKAIProvider):
     """
 
     PROVIDER_TYPE = AIProviderType.GOOGLE
-    AUTH_ERROR_KEYWORDS = ("api key not valid", "invalid api key", "permission denied", "401", "403")
-    RATE_LIMIT_KEYWORDS = ("quota", "rate_limit", "resource_exhausted", "too many requests", "429")
+    AUTH_ERROR_KEYWORDS = (
+        "api key not valid",
+        "invalid api key",
+        "permission denied",
+        "401",
+        "403",
+    )
+    RATE_LIMIT_KEYWORDS = (
+        "quota",
+        "rate_limit",
+        "resource_exhausted",
+        "too many requests",
+        "429",
+    )
     NETWORK_ERROR_KEYWORDS = ("dns", "connection", "network", "host", "getaddrinfo")
 
     def __init__(self):
@@ -48,8 +60,7 @@ class GeminiSDKWrapper(SDKAIProvider):
             import httpx
         except ImportError:
             raise RuntimeError(
-                "google-genai SDK not installed. "
-                "Run: pip install google-genai"
+                "google-genai SDK not installed. Run: pip install google-genai"
             )
 
         kwargs = {}
@@ -57,7 +68,7 @@ class GeminiSDKWrapper(SDKAIProvider):
         if sys.platform == "win32":
             kwargs["http_options"] = {
                 "httpx_async_client": httpx.AsyncClient(),
-                "httpx_client": httpx.Client()
+                "httpx_client": httpx.Client(),
             }
 
         return genai.Client(api_key=self._api_key, **kwargs)
@@ -76,6 +87,7 @@ class GeminiSDKWrapper(SDKAIProvider):
     def is_available(self) -> bool:
         try:
             from google import genai  # noqa: F401
+
             return bool(self._api_key)
         except ImportError:
             return False
@@ -90,7 +102,11 @@ class GeminiSDKWrapper(SDKAIProvider):
             )
         except Exception as e:
             # Handle Windows SSL/DNS issues gracefully during import (aiohttp loading SSL context)
-            if "ssl" in str(e).lower() or "dns" in str(e).lower() or "getaddrinfo" in str(e).lower():
+            if (
+                "ssl" in str(e).lower()
+                or "dns" in str(e).lower()
+                or "getaddrinfo" in str(e).lower()
+            ):
                 return (
                     AIProviderStatus.UNAVAILABLE,
                     f"Gemini SDK initialization failed due to network/SSL environment error: {e}",
@@ -109,7 +125,9 @@ class GeminiSDKWrapper(SDKAIProvider):
     def _classify_error(self, err_msg: str, status_code: Optional[int] = None) -> str:
         """Extended error classification with network error support."""
         err_lower = err_msg.lower()
-        if status_code in (401, 403) or any(w in err_lower for w in self.AUTH_ERROR_KEYWORDS):
+        if status_code in (401, 403) or any(
+            w in err_lower for w in self.AUTH_ERROR_KEYWORDS
+        ):
             return "auth"
         if status_code == 429 or any(w in err_lower for w in self.RATE_LIMIT_KEYWORDS):
             return "rate_limit"
@@ -132,13 +150,16 @@ class GeminiSDKWrapper(SDKAIProvider):
         for attempt in range(max_retries + 1):
             try:
                 client = self._get_client()
-                logger.info("Validating Gemini API key with model %s (Attempt %d)...", self._model, attempt + 1)
+                logger.info(
+                    "Validating Gemini API key with model %s (Attempt %d)...",
+                    self._model,
+                    attempt + 1,
+                )
 
                 try:
                     # Primary attempt
                     response = await client.aio.models.generate_content(
-                        model=self._model,
-                        contents="Reply with 'ok'"
+                        model=self._model, contents="Reply with 'ok'"
                     )
                     _ = response.text
                     return AIProviderStatus.AVAILABLE, "Ready"
@@ -146,20 +167,29 @@ class GeminiSDKWrapper(SDKAIProvider):
                     err_str = str(e)
 
                     # 1. Fallback logic: If 404/Not Found, try gemini-1.5-flash
-                    if ("404" in err_str or "not found" in err_str.lower()):
-                        logger.warning(f"Model {self._model} not found. Falling back to gemini-1.5-flash...")
+                    if "404" in err_str or "not found" in err_str.lower():
+                        logger.warning(
+                            f"Model {self._model} not found. Falling back to gemini-1.5-flash..."
+                        )
                         self._model = "gemini-1.5-flash"
                         response = await client.aio.models.generate_content(
-                            model=self._model,
-                            contents="Reply with 'ok'"
+                            model=self._model, contents="Reply with 'ok'"
                         )
                         _ = response.text
-                        return AIProviderStatus.AVAILABLE, f"Ready (Fell back to {self._model})"
+                        return (
+                            AIProviderStatus.AVAILABLE,
+                            f"Ready (Fell back to {self._model})",
+                        )
 
                     # 2. DNS/Network Flake: If we have retries left, wait and try again
-                    if any(w in err_str.lower() for w in self.NETWORK_ERROR_KEYWORDS) and attempt < max_retries:
+                    if (
+                        any(w in err_str.lower() for w in self.NETWORK_ERROR_KEYWORDS)
+                        and attempt < max_retries
+                    ):
                         wait_time = 1 * (attempt + 1)
-                        logger.warning(f"Connection glitch detected ([{err_str}]). Retrying in {wait_time}s...")
+                        logger.warning(
+                            f"Connection glitch detected ([{err_str}]). Retrying in {wait_time}s..."
+                        )
                         await asyncio.sleep(wait_time)
                         continue
 
@@ -172,7 +202,10 @@ class GeminiSDKWrapper(SDKAIProvider):
                 if err_type == "rate_limit":
                     return AIProviderStatus.ERROR, f"Gemini Rate Limit Error: {e}"
                 if err_type == "network":
-                    return AIProviderStatus.ERROR, f"Gemini Network Error: Could not reach Google AI services. Please check your internet connection. ({e})"
+                    return (
+                        AIProviderStatus.ERROR,
+                        f"Gemini Network Error: Could not reach Google AI services. Please check your internet connection. ({e})",
+                    )
                 return AIProviderStatus.ERROR, f"Gemini Connection Failed: {str(e)}"
 
         return AIProviderStatus.ERROR, "Gemini Connection Failed: Max retries exceeded."
@@ -183,6 +216,7 @@ class GeminiSDKWrapper(SDKAIProvider):
 
     async def _send_request(self, client, system_prompt: str, user_prompt: str) -> str:
         from google.genai import types
+
         response = await client.aio.models.generate_content(
             model=self._model,
             contents=f"{system_prompt}\n\n{user_prompt}",
@@ -197,8 +231,7 @@ class GeminiSDKWrapper(SDKAIProvider):
         # Note: test_connection is overridden for Gemini due to retry/fallback logic,
         # but this is still needed for the abstract interface contract.
         response = await client.aio.models.generate_content(
-            model=self._model,
-            contents="Reply with 'ok'"
+            model=self._model, contents="Reply with 'ok'"
         )
         _ = response.text
 

@@ -11,10 +11,22 @@ We currently provide security updates for the following versions of Vexa:
 
 ## Reporting a Vulnerability
 
-We take the security of Vexa seriously. If you believe you have found a security vulnerability, please do NOT open a public issue. Instead, please report it to us privately.
+We take the security of Vexa seriously. If you believe you have found a security vulnerability, please do NOT open a public issue. Instead, please report it to us privately via our coordinated disclosure process.
 
-Please send an email to **security@vexasec.io** with a description of the vulnerability, steps to reproduce it, and any potential impact.
+### Where to Report
 
-We will acknowledge your report within 48 hours and provide a timeline for a fix. We ask that you follow responsible disclosure practices and give us time to address the issue before making it public.
+Please send an email to **security@vexasec.io** with the following information:
+
+1. **Description**: A detailed description of the vulnerability.
+2. **Steps to Reproduce**: A minimal, reproducible example (PoC).
+3. **Impact**: What an attacker could achieve.
+4. **Environment**: Version of Vexa and OS used.
+
+### Our Commitment
+
+We will acknowledge your report within **48 hours** and provide a tracking ID. 
+We aim to provide a resolution within **30 days** for high-severity issues.
+
+We ask that you follow [GitHub's Coordinated Disclosure](https://docs.github.com/en/code-security/security-advisories/guidelines-for-coordinated-vulnerability-disclosure) guidelines and give us time to address the issue before making it public.
 
 Thank you for helping keep Vexa secure!

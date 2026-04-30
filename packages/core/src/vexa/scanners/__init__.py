@@ -12,7 +12,7 @@ from vexa.scanners.base import (
     BaseScanner,
     ScannerFinding,
     ScannerSeverity,
-    Finding,         # Deprecated alias for ScannerFinding
+    Finding,  # Deprecated alias for ScannerFinding
     FindingSeverity,  # Deprecated alias for ScannerSeverity
     ScanMode,
     ScannerResult,

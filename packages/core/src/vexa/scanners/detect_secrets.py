@@ -24,26 +24,27 @@ logger = get_logger(__name__)
 class DetectSecretsScanner(BaseScanner):
     """
     detect-secrets scanner for finding hardcoded secrets.
-    
+
     detect-secrets is an enterprise-friendly tool for
     detecting secrets in source code.
     """
-    
+
     name = "detect-secrets"
     supported_modes = [ScanMode.LOCAL, ScanMode.CONTAINER]
-    
-    def get_command(self, path: Path, exclusions: Optional[List[str]] = None) -> List[str]:
+
+    def get_command(
+        self, path: Path, exclusions: Optional[List[str]] = None
+    ) -> List[str]:
         """Build detect-secrets command."""
-        import sys
         cmd = [
             "detect-secrets",
             "scan",
         ]
-        
+
         # --all-files is only for directory scans. For single files, it's better to pass the file directly.
         if path.is_dir():
             cmd.append("--all-files")
-        
+
         if exclusions:
             for ex in exclusions:
                 # detect-secrets takes a regex for --exclude-files.
@@ -53,26 +54,26 @@ class DetectSecretsScanner(BaseScanner):
                 if regex.endswith("/"):
                     regex = regex[:-1]
                 cmd.extend(["--exclude-files", regex])
-                
+
         cmd.append(str(path))
         return cmd
-    
+
     def parse_output(self, output: str, target_path: Path) -> List[Finding]:
         """Parse detect-secrets JSON output into normalized findings."""
         findings = []
-        
+
         if not output.strip():
             return findings
-        
+
         try:
             data = json.loads(output)
         except json.JSONDecodeError as e:
             logger.warning("Failed to parse detect-secrets JSON output: %s", e)
             return findings
-        
+
         # detect-secrets output format: { "results": { "filename": [...] } }
         results = data.get("results", {})
-        
+
         for raw_file_path, secrets in results.items():
             # Normalize path: forward slashes and remove ./ prefix
             file_path = raw_file_path.replace("\\", "/")
@@ -82,8 +83,12 @@ class DetectSecretsScanner(BaseScanner):
             if target_path.is_file():
                 full_path = target_path
             else:
-                full_path = (target_path / file_path).resolve() if not Path(file_path).is_absolute() else Path(file_path)
-            
+                full_path = (
+                    (target_path / file_path).resolve()
+                    if not Path(file_path).is_absolute()
+                    else Path(file_path)
+                )
+
             # Optimization: Cache file lines if multiple secrets in same file
             file_lines = []
             if full_path.exists():
@@ -104,7 +109,9 @@ class DetectSecretsScanner(BaseScanner):
                 rule_id = secret_type.lower().replace(" ", "-")
 
                 # Filter out false positives for "Secret Keyword" in common import statements [FP-002]
-                if secret_type == "Secret Keyword" and (snippet.startswith("import ") or snippet.startswith("from ")):
+                if secret_type == "Secret Keyword" and (
+                    snippet.startswith("import ") or snippet.startswith("from ")
+                ):
                     continue
 
                 # Map specific secret types to more granular CWEs
@@ -122,7 +129,7 @@ class DetectSecretsScanner(BaseScanner):
                     "Stripe API Key": ["CWE-798", "CWE-312"],
                     "GitHub Token": ["CWE-798", "CWE-312"],
                 }
-                
+
                 cwe_ids = cwe_mapping.get(secret_type, ["CWE-798", "CWE-259"])
 
                 finding = Finding(
@@ -140,5 +147,5 @@ class DetectSecretsScanner(BaseScanner):
                     raw_data=secret,
                 )
                 findings.append(finding)
-        
+
         return findings

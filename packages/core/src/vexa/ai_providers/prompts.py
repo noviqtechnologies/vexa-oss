@@ -29,34 +29,40 @@ Strictly adhere to the **Critical Requirements** and the specific cloud guide be
 
 For each finding, provide the analysis in the exact structure specified. **NEVER leave the Remediation Code block empty; it must contain a valid code fix.** Failure to follow these requirements will result in invalid analysis."""
 
-    def build_batch_prompt(self, findings: List[Finding], app_context: Optional[Dict[str, Any]] = None, is_workspace_scan: bool = False, rag_contexts: Optional[Dict[str, str]] = None) -> str:
+    def build_batch_prompt(
+        self,
+        findings: List[Finding],
+        app_context: Optional[Dict[str, Any]] = None,
+        is_workspace_scan: bool = False,
+        rag_contexts: Optional[Dict[str, str]] = None,
+    ) -> str:
         """Build prompt for batch of findings.
-        
+
         Args:
             findings: List of findings to analyze.
             app_context: Application context metadata.
             is_workspace_scan: Whether this is a workspace-level scan.
             rag_contexts: Optional dict mapping finding_id -> local RAG context string.
         """
-        
+
         app_context = app_context or {}
         app_name = app_context.get("name", "Unknown Application")
         services = ", ".join(app_context.get("services", ["Core Services"]))
-        
+
         # Select guide based on app context
         cloud_type = app_context.get("cloud_provider", "google")
-        
+
         system_context = self.SYSTEM_CONTEXT_TEMPLATE.format(
             app_name=app_name,
             cloud_services=services,
-            enhancement_guide=get_guide(cloud_type)
+            enhancement_guide=get_guide(cloud_type),
         )
-        
+
         prompt = f"{system_context}\n\n"
         prompt += "## Security Findings to Analyze\n\n"
-        
+
         rag_contexts = rag_contexts or {}
-        
+
         for i, finding in enumerate(findings, 1):
             prompt += f"""### Finding {i}
 - **Scanner**: {finding.scanner}
@@ -80,12 +86,12 @@ For each finding, provide the analysis in the exact structure specified. **NEVER
 Use this local context to assess whether this finding is a false positive.
 
 """
-        
+
         prompt += self._get_response_template(is_workspace_scan)
         return prompt
 
     def _get_response_template(self, is_workspace_scan: bool) -> str:
-        
+
         remediation_instruction = """#### Remediation Code
 Provide a direct, exact, production-ready drop-in replacement for the specific lines of the provided vulnerable snippet. 
 
@@ -116,7 +122,7 @@ Provide a direct, exact, production-ready drop-in replacement for the specific l
         # In workspace scans, we prioritize False Positives and rapid remediation.
         # In detailed scans, we include extensive breakdown.
         if is_workspace_scan:
-             template += f"""
+            template += f"""
 #### False Positive Analysis
 - **Is False Positive**: [true|false]
 - **Confidence**: [0.0-1.0]
@@ -125,7 +131,7 @@ Provide a direct, exact, production-ready drop-in replacement for the specific l
 {remediation_instruction}
 """
         else:
-             template += f"""
+            template += f"""
 #### Detailed Description
 [Comprehensive explanation of the vulnerability]
 
@@ -159,9 +165,11 @@ Provide a direct, exact, production-ready drop-in replacement for the specific l
 
 class GenericMarkdownParser:
     """Parse Markdown responses from AI Providers into EnhancedFindings."""
-    
-    FINDING_PATTERN = r"### \s*(?:Analysis\s+for\s+)?Finding\s*(\d+)(?::)?(?:\s*Analysis)?.*?(?:\n|$)"
-    
+
+    FINDING_PATTERN = (
+        r"### \s*(?:Analysis\s+for\s+)?Finding\s*(\d+)(?::)?(?:\s*Analysis)?.*?(?:\n|$)"
+    )
+
     SECTION_PATTERNS = {
         "detailed_description": r"#### (?:Detailed\s+)?Description(?::)?\s*(.+?)(?=####|$)",
         "attack_scenario": r"#### Attack Scenario(?::)?\s*(.+?)(?=####|$)",
@@ -171,113 +179,118 @@ class GenericMarkdownParser:
         "test_cases": r"#### Verification Test Cases(?::)?\s*(.+?)(?=####|$)",
     }
 
-    def parse(self, markdown_text: str, original_findings: List[Finding]) -> List[EnhancedFinding]:
+    def parse(
+        self, markdown_text: str, original_findings: List[Finding]
+    ) -> List[EnhancedFinding]:
         """Parse markdown response and merge with original findings."""
         if not markdown_text:
             logger.warning("Empty markdown response received from AI")
             return []
-            
+
         # Split by finding sections
         finding_sections = re.split(self.FINDING_PATTERN, markdown_text)
-        
+
         enhanced = []
-        
+
         for i in range(1, len(finding_sections), 2):
             try:
                 finding_idx_str = finding_sections[i]
-                section = finding_sections[i+1]
-                
-                finding_idx = int(finding_idx_str) - 1 # 1-based to 0-based
-                
+                section = finding_sections[i + 1]
+
+                finding_idx = int(finding_idx_str) - 1  # 1-based to 0-based
+
                 if finding_idx < 0 or finding_idx >= len(original_findings):
                     logger.warning(f"Parsed finding index {finding_idx} out of range")
                     continue
-                    
+
                 original = original_findings[finding_idx]
-                
+
                 detailed_description = self._extract("detailed_description", section)
                 if not detailed_description:
                     detailed_description = original.description
 
                 remediation = self._extract("remediation_code", section)
-                
+
                 # Pre-process remediation to strip hallucinated line numbers from AI (e.g., '15   subprocess.Popen()')
                 if remediation:
                     cleaned_lines = []
-                    for line in remediation.split('\n'):
+                    for line in remediation.split("\n"):
                         # Strip lines starting with optional space, numbers, and space, maintaining remaining indent.
-                        match = re.match(r'^(\s*)\d+\s+(.*)', line)
+                        match = re.match(r"^(\s*)\d+\s+(.*)", line)
                         if match:
                             cleaned_lines.append(match.group(1) + match.group(2))
                         else:
                             cleaned_lines.append(line)
-                    remediation = '\n'.join(cleaned_lines)
-                
-                enhanced.append(EnhancedFinding(
-                    # Original fields
-                    id=original.id,
-                    scanner=original.scanner,
-                    severity=original.severity,
-                    title=original.title,
-                    description=original.description,
-                    file_path=original.file_path,
-                    
-                    # Parsed enhanced fields
-                    detailed_description=detailed_description,
-                    attack_scenario=self._extract("attack_scenario", section),
-                    business_impact=self._extract("business_impact", section),
-                    exploitability="unknown",
-                    
-                    code_snippet=original.code_snippet,
-                    code_snippet_before=original.code_snippet,
-                    code_snippet_after=remediation,
-                    line_start=original.line_start,
-                    line_end=original.line_end,
-                    
-                    remediation_code=remediation,
-                    remediation_guidance=detailed_description,
-                    cli_commands=[],
-                    implementation_steps=self._extract_list("Implementation Steps", section),
-                    test_cases=self._extract_list_items("test_cases", section),
-                    rollback_procedure="",
-                    
-                    google_cloud_recommendation=self._extract("google_cloud_recommendation", section),
-                    google_cloud_doc_links=self._extract_links(section),
-                    cwe_ids=original.cwe_ids,
-                    owasp_category=original.owasp_category,
-                    
-                    # IMPORTANT: Centralized FP logic mapping
-                    false_positive_confidence=self._extract_fp_confidence(section),
-                    is_false_positive=self._extract_fp_status(section),
-                    fp_explanation=self._extract_fp_explanation(section),
-                ))
+                    remediation = "\n".join(cleaned_lines)
+
+                enhanced.append(
+                    EnhancedFinding(
+                        # Original fields
+                        id=original.id,
+                        scanner=original.scanner,
+                        severity=original.severity,
+                        title=original.title,
+                        description=original.description,
+                        file_path=original.file_path,
+                        # Parsed enhanced fields
+                        detailed_description=detailed_description,
+                        attack_scenario=self._extract("attack_scenario", section),
+                        business_impact=self._extract("business_impact", section),
+                        exploitability="unknown",
+                        code_snippet=original.code_snippet,
+                        code_snippet_before=original.code_snippet,
+                        code_snippet_after=remediation,
+                        line_start=original.line_start,
+                        line_end=original.line_end,
+                        remediation_code=remediation,
+                        remediation_guidance=detailed_description,
+                        cli_commands=[],
+                        implementation_steps=self._extract_list(
+                            "Implementation Steps", section
+                        ),
+                        test_cases=self._extract_list_items("test_cases", section),
+                        rollback_procedure="",
+                        google_cloud_recommendation=self._extract(
+                            "google_cloud_recommendation", section
+                        ),
+                        google_cloud_doc_links=self._extract_links(section),
+                        cwe_ids=original.cwe_ids,
+                        owasp_category=original.owasp_category,
+                        # IMPORTANT: Centralized FP logic mapping
+                        false_positive_confidence=self._extract_fp_confidence(section),
+                        is_false_positive=self._extract_fp_status(section),
+                        fp_explanation=self._extract_fp_explanation(section),
+                    )
+                )
             except (ValueError, IndexError) as e:
                 logger.error(f"Failed to parse finding index from section: {e}")
             except Exception as e:
                 logger.error(f"Unexpected error parsing finding section: {e}")
-                
+
         return enhanced
 
     def _extract(self, field: str, section: str) -> str:
         pattern = self.SECTION_PATTERNS.get(field)
         if not pattern:
             return ""
-        
+
         match = re.search(pattern, section, re.DOTALL | re.IGNORECASE)
         res = match.group(1).strip() if match and match.groups() else ""
-        
+
         # SPECIAL CASE: If remediation_code is empty, try to find ANY code block in this section
         if field == "remediation_code" and not res:
-            logger.debug("Remediation Code section not found. Attempting fallback to any code block.")
+            logger.debug(
+                "Remediation Code section not found. Attempting fallback to any code block."
+            )
             code_blocks = re.findall(r"```(?:\w+)?\s*(.*?)\s*```", section, re.DOTALL)
             for block in code_blocks:
-                if len(block.strip()) > 10: # Likely actual code
+                if len(block.strip()) > 10:  # Likely actual code
                     return block.strip()
 
         return res
 
     def _extract_list(self, title: str, section: str) -> List[str]:
-        pattern = fr"#### {title}\s+(.+?)(?=####|$)"
+        pattern = rf"#### {title}\s+(.+?)(?=####|$)"
         match = re.search(pattern, section, re.DOTALL)
         if not match:
             return []
@@ -291,22 +304,24 @@ class GenericMarkdownParser:
         return re.findall(r"(?:-|\*|\d+\.)\s+(.+)$", content, re.MULTILINE)
 
     def _extract_links(self, section: str) -> List[str]:
-        pattern = r'http[s]?://cloud\.google\.com/[^\s\)]+'
+        pattern = r"http[s]?://cloud\.google\.com/[^\s\)]+"
         return re.findall(pattern, section)
-    
+
     def _extract_fp_confidence(self, section: str) -> float:
-        match = re.search(r'\*\*Confidence\*\*:\s*([\d.]+)', section)
+        match = re.search(r"\*\*Confidence\*\*:\s*([\d.]+)", section)
         try:
             return float(match.group(1)) if match else 0.0
         except ValueError:
             return 0.0
-    
+
     def _extract_fp_status(self, section: str) -> bool:
-        match = re.search(r'\*\*Is False Positive\*\*:\s*(true|false)', section, re.IGNORECASE)
-        # Note: We let the provider manager do the threshold logic. 
+        match = re.search(
+            r"\*\*Is False Positive\*\*:\s*(true|false)", section, re.IGNORECASE
+        )
+        # Note: We let the provider manager do the threshold logic.
         # Here we just parse what the AI explicitly answered.
-        return match.group(1).lower() == 'true' if match else False
-        
+        return match.group(1).lower() == "true" if match else False
+
     def _extract_fp_explanation(self, section: str) -> str:
-        match = re.search(r'\*\*Explanation\*\*:\s*(.+)', section)
+        match = re.search(r"\*\*Explanation\*\*:\s*(.+)", section)
         return match.group(1).strip() if match else ""

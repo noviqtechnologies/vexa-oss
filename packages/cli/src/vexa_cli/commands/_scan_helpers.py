@@ -15,7 +15,9 @@ from vexa.common.models import ScanMode, ScanResult, JobStatus
 from vexa.common.cloud_provider import CloudProvider
 
 
-def resolve_ai_provider(config, ai_provider_override: Optional[str] = None) -> CloudProvider:
+def resolve_ai_provider(
+    config, ai_provider_override: Optional[str] = None
+) -> CloudProvider:
     """
     Determine which AI provider to use, in priority order:
     1. CLI --ai-provider flag
@@ -73,7 +75,10 @@ async def run_scan_with_job_manager(
                 await job_manager.update_job(job_id, pct, status=JobStatus.RUNNING)
 
         return await engine.run_scan_with_progress(
-            path, job_id, scanners, mode,
+            path,
+            job_id,
+            scanners,
+            mode,
             timeout=timeout,
             progress_callback=progress_cb,
             cloud_provider=cloud_provider,
@@ -147,15 +152,15 @@ async def poll_scan_progress(
 
         if state == "completed":
             progress_bar.update(
-                task_bar, completed=100,
-                description="[bold green]Scan completed successfully[/bold green]"
+                task_bar,
+                completed=100,
+                description="[bold green]Scan completed successfully[/bold green]",
             )
             break
         elif state in ["failed", "cancelled", "timeout"]:
             error = status_data.get("error", "Unknown error")
             progress_bar.update(
-                task_bar,
-                description=f"[bold red]Scan {state}[/bold red]"
+                task_bar, description=f"[bold red]Scan {state}[/bold red]"
             )
             raise Exception(f"Scan failed: {error}")
 

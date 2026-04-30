@@ -15,10 +15,8 @@ genuine, verifiable, air-gapped AI security analysis.
 """
 
 import json
-import time
 import asyncio
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from vexa.common.models import Finding, EnhancedFinding
@@ -52,13 +50,33 @@ PRIVACY_VAULT_ERROR = (
 
 # Supported models with minimum hardware requirements
 SUPPORTED_MODELS = {
-    "gemma4:26b": {"min_ram_gb": 16, "recommended_ram_gb": 32, "quality": "Best — MoE, fast + smart (recommended)"},
-    "gemma4:e4b": {"min_ram_gb": 8, "recommended_ram_gb": 16, "quality": "Good — multimodal, lightweight"},
-    "gemma4:31b": {"min_ram_gb": 32, "recommended_ram_gb": 64, "quality": "Best — enterprise dense"},
+    "gemma4:26b": {
+        "min_ram_gb": 16,
+        "recommended_ram_gb": 32,
+        "quality": "Best — MoE, fast + smart (recommended)",
+    },
+    "gemma4:e4b": {
+        "min_ram_gb": 8,
+        "recommended_ram_gb": 16,
+        "quality": "Good — multimodal, lightweight",
+    },
+    "gemma4:31b": {
+        "min_ram_gb": 32,
+        "recommended_ram_gb": 64,
+        "quality": "Best — enterprise dense",
+    },
     "llama3:8b": {"min_ram_gb": 8, "recommended_ram_gb": 16, "quality": "Good"},
-    "codellama:13b": {"min_ram_gb": 16, "recommended_ram_gb": 32, "quality": "Better — optimised for code"},
+    "codellama:13b": {
+        "min_ram_gb": 16,
+        "recommended_ram_gb": 32,
+        "quality": "Better — optimised for code",
+    },
     "mistral:7b": {"min_ram_gb": 8, "recommended_ram_gb": 16, "quality": "Good — fast"},
-    "codellama:34b": {"min_ram_gb": 32, "recommended_ram_gb": 64, "quality": "Best — enterprise"},
+    "codellama:34b": {
+        "min_ram_gb": 32,
+        "recommended_ram_gb": 64,
+        "quality": "Best — enterprise",
+    },
 }
 
 
@@ -118,6 +136,7 @@ class OllamaProvider(BaseAIProvider):
         """Check if Ollama appears to be reachable (synchronous quick check)."""
         try:
             import urllib.request
+
             req = urllib.request.Request(
                 f"{self.base_url}/api/tags",
                 method="GET",
@@ -136,6 +155,7 @@ class OllamaProvider(BaseAIProvider):
         """
         try:
             import urllib.request
+
             req = urllib.request.Request(
                 f"{self.base_url}/api/tags",
                 method="GET",
@@ -147,12 +167,14 @@ class OllamaProvider(BaseAIProvider):
             available_models = [m.get("name", "") for m in data.get("models", [])]
             if self.model not in available_models:
                 # Model is not pulled yet — give a helpful message
-                model_names = ", ".join(available_models[:5]) if available_models else "none"
+                model_names = (
+                    ", ".join(available_models[:5]) if available_models else "none"
+                )
                 return (
                     AIProviderStatus.UNAVAILABLE,
                     f"Ollama is running but the model '{self.model}' is not installed.\n"
                     f"Install it with: ollama pull {self.model}\n"
-                    f"Available models: {model_names}"
+                    f"Available models: {model_names}",
                 )
 
             return AIProviderStatus.AVAILABLE, f"Ready — {self.model} via Ollama"
@@ -160,19 +182,19 @@ class OllamaProvider(BaseAIProvider):
         except ConnectionRefusedError:
             return (
                 AIProviderStatus.UNAVAILABLE,
-                "Local AI is not running. Start it with: ollama serve"
+                "Local AI is not running. Start it with: ollama serve",
             )
         except Exception as e:
             err_str = str(e).lower()
             if "refused" in err_str or "connection" in err_str or "urlopen" in err_str:
                 return (
                     AIProviderStatus.UNAVAILABLE,
-                    "Local AI is not running. Start it with: ollama serve"
+                    "Local AI is not running. Start it with: ollama serve",
                 )
             return (
                 AIProviderStatus.ERROR,
                 f"Could not connect to local AI: {e}\n"
-                "Make sure Ollama is running (ollama serve) and try again."
+                "Make sure Ollama is running (ollama serve) and try again.",
             )
 
     async def test_connection(self) -> tuple[AIProviderStatus, str]:
@@ -189,12 +211,15 @@ class OllamaProvider(BaseAIProvider):
             response = await self._generate("Reply with 'ok'", max_tokens=10)
             if response and len(response.strip()) > 0:
                 return AIProviderStatus.AVAILABLE, f"Ready — {self.model}"
-            return AIProviderStatus.ERROR, "Local AI responded but with empty output. Try a different model."
+            return (
+                AIProviderStatus.ERROR,
+                "Local AI responded but with empty output. Try a different model.",
+            )
         except Exception as e:
             return (
                 AIProviderStatus.ERROR,
                 f"Local AI test failed: {e}\n"
-                "Try restarting Ollama (ollama serve) or pulling the model again."
+                "Try restarting Ollama (ollama serve) or pulling the model again.",
             )
 
     # ------------------------------------------------------------------
@@ -211,15 +236,17 @@ class OllamaProvider(BaseAIProvider):
         import urllib.request
 
         url = f"{self.base_url}/api/generate"
-        payload = json.dumps({
-            "model": self.model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.2,
-                "num_predict": max_tokens,
+        payload = json.dumps(
+            {
+                "model": self.model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.2,
+                    "num_predict": max_tokens,
+                },
             }
-        }).encode("utf-8")
+        ).encode("utf-8")
 
         req = urllib.request.Request(
             url,
@@ -233,15 +260,12 @@ class OllamaProvider(BaseAIProvider):
         loop = asyncio.get_event_loop()
         try:
             response = await loop.run_in_executor(
-                None,
-                lambda: urllib.request.urlopen(req, timeout=300)
+                None, lambda: urllib.request.urlopen(req, timeout=300)
             )
             data = json.loads(response.read().decode("utf-8"))
             return data.get("response", "")
         except ConnectionRefusedError:
-            raise RuntimeError(
-                "Local AI is not running. Start it with: ollama serve"
-            )
+            raise RuntimeError("Local AI is not running. Start it with: ollama serve")
         except Exception as e:
             err_str = str(e).lower()
             if "refused" in err_str or "connection" in err_str:
@@ -292,11 +316,14 @@ class OllamaProvider(BaseAIProvider):
         try:
             logger.info(
                 "[local] Sending batch of %d findings to Ollama (%s)...",
-                len(findings), self.model
+                len(findings),
+                self.model,
             )
 
             text = await self._generate(full_prompt)
-            logger.debug("[local] Received Ollama response length: %d characters", len(text))
+            logger.debug(
+                "[local] Received Ollama response length: %d characters", len(text)
+            )
 
             enhanced = self.parser.parse(text, findings)
 
@@ -328,6 +355,7 @@ class OllamaProvider(BaseAIProvider):
         key_file = VEXA_HOME / "audit.key"
         if not key_file.exists():
             import secrets
+
             key_file.parent.mkdir(parents=True, exist_ok=True)
             key = secrets.token_bytes(32)
             key_file.write_bytes(key)
@@ -353,7 +381,7 @@ class OllamaProvider(BaseAIProvider):
         """
         import hmac
         import hashlib
-        
+
         try:
             self._audit_log_dir.mkdir(parents=True, exist_ok=True)
             audit_file = self._audit_log_dir / "audit.log"
@@ -369,20 +397,22 @@ class OllamaProvider(BaseAIProvider):
                 "external_calls": 0,
                 "data_egress": False,
             }
-            
+
             payload = json.dumps(entry, sort_keys=True)
             key = self._get_or_create_audit_key()
-            signature = hmac.new(key, payload.encode("utf-8"), hashlib.sha256).hexdigest()
-            
-            signed_entry = {
-                "payload": entry,
-                "signature": signature
-            }
+            signature = hmac.new(
+                key, payload.encode("utf-8"), hashlib.sha256
+            ).hexdigest()
+
+            signed_entry = {"payload": entry, "signature": signature}
 
             with open(audit_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(signed_entry) + "\n")
 
-            logger.debug("[local] Audit log entry written: %d findings processed", len(input_findings))
+            logger.debug(
+                "[local] Audit log entry written: %d findings processed",
+                len(input_findings),
+            )
 
         except Exception as e:
             # Audit log failure should never crash the scan

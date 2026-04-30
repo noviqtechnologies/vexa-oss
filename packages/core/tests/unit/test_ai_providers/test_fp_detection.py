@@ -4,7 +4,7 @@ Tests for SS-010: False Positive Detection via AI (>90% confidence).
 Validates the prompt builder produces FP analysis sections and
 the parser correctly extracts confidence scores.
 """
-import pytest
+
 from vexa.ai_providers.prompts import GenericPromptBuilder, GenericMarkdownParser
 from vexa.common.models import Finding
 
@@ -16,9 +16,14 @@ class TestFalsePositiveDetection:
         """SS-010: Workspace scan prompts must request FP analysis."""
         builder = GenericPromptBuilder()
         finding = Finding(
-            id="F1", scanner="bandit", severity="high",
-            title="eval() usage", description="Use of eval",
-            file_path="test_helpers.py", line_start=5, line_end=5,
+            id="F1",
+            scanner="bandit",
+            severity="high",
+            title="eval() usage",
+            description="Use of eval",
+            file_path="test_helpers.py",
+            line_start=5,
+            line_end=5,
         )
         prompt = builder.build_batch_prompt([finding], is_workspace_scan=True)
         assert "False Positive" in prompt
@@ -28,9 +33,14 @@ class TestFalsePositiveDetection:
         """SS-010: Prompt must request remediation code."""
         builder = GenericPromptBuilder()
         finding = Finding(
-            id="F1", scanner="bandit", severity="high",
-            title="eval() usage", description="Use of eval",
-            file_path="test.py", line_start=5, line_end=5,
+            id="F1",
+            scanner="bandit",
+            severity="high",
+            title="eval() usage",
+            description="Use of eval",
+            file_path="test.py",
+            line_start=5,
+            line_end=5,
         )
         prompt = builder.build_batch_prompt([finding], is_workspace_scan=False)
         assert "Remediation Code" in prompt
@@ -58,11 +68,18 @@ No impact.
 # No fix needed — false positive
 ```
 """
-        findings = [Finding(
-            id="F1", scanner="bandit", severity="high",
-            title="eval() usage", description="Use of eval",
-            file_path="test_helpers.py", line_start=5, line_end=5,
-        )]
+        findings = [
+            Finding(
+                id="F1",
+                scanner="bandit",
+                severity="high",
+                title="eval() usage",
+                description="Use of eval",
+                file_path="test_helpers.py",
+                line_start=5,
+                line_end=5,
+            )
+        ]
         results = parser.parse(md, findings)
         assert len(results) == 1
         assert results[0].false_positive_confidence >= 0.9
@@ -91,11 +108,18 @@ Full system compromise.
 subprocess.run(['cmd'], shell=False)
 ```
 """
-        findings = [Finding(
-            id="F1", scanner="bandit", severity="critical",
-            title="os.system", description="Command injection",
-            file_path="app.py", line_start=10, line_end=10,
-        )]
+        findings = [
+            Finding(
+                id="F1",
+                scanner="bandit",
+                severity="critical",
+                title="os.system",
+                description="Command injection",
+                file_path="app.py",
+                line_start=10,
+                line_end=10,
+            )
+        ]
         results = parser.parse(md, findings)
         assert len(results) == 1
         assert results[0].is_false_positive is False
@@ -105,9 +129,14 @@ subprocess.run(['cmd'], shell=False)
         """SS-010 + P2-RAG: RAG context should appear in prompt."""
         builder = GenericPromptBuilder()
         finding = Finding(
-            id="F1", scanner="bandit", severity="high",
-            title="eval() usage", description="Use of eval",
-            file_path="test_helpers.py", line_start=5, line_end=5,
+            id="F1",
+            scanner="bandit",
+            severity="high",
+            title="eval() usage",
+            description="Use of eval",
+            file_path="test_helpers.py",
+            line_start=5,
+            line_end=5,
         )
         rag_contexts = {"F1": "[TEST FILE] test_helpers.py is a test file."}
         prompt = builder.build_batch_prompt(

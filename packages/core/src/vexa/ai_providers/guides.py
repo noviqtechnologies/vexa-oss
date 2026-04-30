@@ -38,6 +38,7 @@ AZURE_ENHANCEMENT_GUIDE = f"""
 {CRITICAL_REQUIREMENTS}
 """
 
+
 def get_guide(provider: str) -> str:
     """Return the enhancement guide for the specified provider."""
     provider_lower = provider.lower()

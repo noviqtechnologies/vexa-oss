@@ -7,9 +7,8 @@ scan result and commit SHA. Used by `vexa verify` CLI command.
 
 import hashlib
 import json
-import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from vexa.common.logging import get_logger
 

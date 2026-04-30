@@ -84,9 +84,19 @@ class WorkspaceIndexer:
 
     # Directories to always skip
     SKIP_DIRS: Set[str] = {
-        "__pycache__", ".git", "node_modules", ".venv", "venv",
-        "env", ".tox", ".mypy_cache", ".pytest_cache", "dist",
-        "build", ".eggs", "*.egg-info",
+        "__pycache__",
+        ".git",
+        "node_modules",
+        ".venv",
+        "venv",
+        "env",
+        ".tox",
+        ".mypy_cache",
+        ".pytest_cache",
+        "dist",
+        "build",
+        ".eggs",
+        "*.egg-info",
     }
 
     MAX_FILE_SIZE_BYTES = 512_000  # Skip files larger than 500KB
@@ -103,7 +113,11 @@ class WorkspaceIndexer:
 
         for root, dirs, files in os.walk(self.workspace_path):
             # Prune skippable directories in-place
-            dirs[:] = [d for d in dirs if d not in self.SKIP_DIRS and not d.endswith(".egg-info")]
+            dirs[:] = [
+                d
+                for d in dirs
+                if d not in self.SKIP_DIRS and not d.endswith(".egg-info")
+            ]
 
             for f in files:
                 if not f.endswith(".py"):
@@ -115,7 +129,8 @@ class WorkspaceIndexer:
 
         logger.info(
             "Workspace indexed: %d files, %d AST nodes extracted.",
-            self._file_count, len(self.nodes),
+            self._file_count,
+            len(self.nodes),
         )
         return len(self.nodes)
 
@@ -132,12 +147,16 @@ class WorkspaceIndexer:
         rel_path = str(file_path.relative_to(self.workspace_path))
 
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
+            if isinstance(node, ast.FunctionDef) or isinstance(
+                node, ast.AsyncFunctionDef
+            ):
                 self._extract_function(node, rel_path)
             elif isinstance(node, ast.ClassDef):
                 self._extract_class(node, rel_path)
 
-    def _extract_function(self, node: ast.FunctionDef, rel_path: str, parent: Optional[str] = None) -> None:
+    def _extract_function(
+        self, node: ast.FunctionDef, rel_path: str, parent: Optional[str] = None
+    ) -> None:
         """Extract function/method metadata."""
         # Build signature
         args = []
@@ -164,18 +183,20 @@ class WorkspaceIndexer:
 
         docstring = ast.get_docstring(node) or ""
 
-        self.nodes.append(ASTNode(
-            node_type="method" if parent else "function",
-            name=node.name,
-            file_path=rel_path,
-            line_start=node.lineno,
-            line_end=node.end_lineno or node.lineno,
-            parent=parent,
-            signature=sig,
-            docstring=docstring,
-            calls=calls,
-            decorators=decorators,
-        ))
+        self.nodes.append(
+            ASTNode(
+                node_type="method" if parent else "function",
+                name=node.name,
+                file_path=rel_path,
+                line_start=node.lineno,
+                line_end=node.end_lineno or node.lineno,
+                parent=parent,
+                signature=sig,
+                docstring=docstring,
+                calls=calls,
+                decorators=decorators,
+            )
+        )
 
     def _extract_class(self, node: ast.ClassDef, rel_path: str) -> None:
         """Extract class metadata and its methods."""
@@ -188,15 +209,19 @@ class WorkspaceIndexer:
 
         docstring = ast.get_docstring(node) or ""
 
-        self.nodes.append(ASTNode(
-            node_type="class",
-            name=node.name,
-            file_path=rel_path,
-            line_start=node.lineno,
-            line_end=node.end_lineno or node.lineno,
-            signature=f"class {node.name}({', '.join(bases)})" if bases else f"class {node.name}",
-            docstring=docstring,
-        ))
+        self.nodes.append(
+            ASTNode(
+                node_type="class",
+                name=node.name,
+                file_path=rel_path,
+                line_start=node.lineno,
+                line_end=node.end_lineno or node.lineno,
+                signature=f"class {node.name}({', '.join(bases)})"
+                if bases
+                else f"class {node.name}",
+                docstring=docstring,
+            )
+        )
 
         # Extract methods within the class
         for item in node.body:
@@ -210,7 +235,8 @@ class WorkspaceIndexer:
     def get_nodes_at_line(self, file_path: str, line: int) -> List[ASTNode]:
         """Get nodes that contain the specified line."""
         return [
-            n for n in self.nodes
+            n
+            for n in self.nodes
             if n.file_path == file_path and n.line_start <= line <= n.line_end
         ]
 

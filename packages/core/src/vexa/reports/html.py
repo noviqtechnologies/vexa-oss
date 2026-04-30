@@ -4,14 +4,13 @@ HTML Report Generator for Vexa.
 SS-006: Human-readable HTML report with Jinja2 templating.
 """
 
-import html
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from vexa.reports.generator import BaseReportGenerator, ReportGenerator, ReportMetadata
-from vexa.scanners.base import Finding, FindingSeverity
+from vexa.scanners.base import Finding
 from vexa.scanners.engine import ScanResult
 from vexa.security.output_sanitizer import OutputSanitizer
 from vexa.common.logging import get_logger
@@ -24,26 +23,26 @@ logger = get_logger(__name__)
 class HTMLReportGenerator(BaseReportGenerator):
     """
     SS-006: HTML report generator for human review.
-    
+
     Produces professional HTML reports with:
     - Executive summary
     - Severity breakdown
     - Finding details with code snippets
     - Responsive design
     """
-    
+
     format_name = "html"
     file_extension = ".html"
-    
+
     # Severity colors
     SEVERITY_COLORS = {
         "critical": "#dc2626",  # Red-600
-        "high": "#ea580c",      # Orange-600
-        "medium": "#ca8a04",    # Yellow-600
-        "low": "#2563eb",       # Blue-600
-        "info": "#6b7280",      # Gray-500
+        "high": "#ea580c",  # Orange-600
+        "medium": "#ca8a04",  # Yellow-600
+        "low": "#2563eb",  # Blue-600
+        "info": "#6b7280",  # Gray-500
     }
-    
+
     def generate(
         self,
         result: ScanResult,
@@ -53,16 +52,16 @@ class HTMLReportGenerator(BaseReportGenerator):
         """Generate HTML report."""
         output_path = self._prepare_output_path(output_path)
         metadata = metadata or ReportMetadata()
-        
+
         sanitizer = OutputSanitizer()
-        
+
         html_content = self._render_report(result, metadata, sanitizer)
-        
+
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
-        
+
         return output_path
-    
+
     def _render_markdown(self, content: str, sanitizer: OutputSanitizer) -> str:
         """Render markdown content safely."""
         if not content:
@@ -72,27 +71,27 @@ class HTMLReportGenerator(BaseReportGenerator):
         # Convert escaped blockquotes back to allow markdown processing
         # This is a safe subset allowing blockquotes
         safe_text = safe_text.replace("&gt; ", "> ")
-        
+
         # Preprocess: Ensure headers have newlines before them if they are stuck to text
         # Example: "Summary text ### Impact" -> "Summary text\n\n### Impact"
         # Handle start of string and mid-text
-        safe_text = re.sub(r'(^|[^#\n])\s*(#{1,6}\s)', r'\1\n\n\2', safe_text)
-        
+        safe_text = re.sub(r"(^|[^#\n])\s*(#{1,6}\s)", r"\1\n\n\2", safe_text)
+
         # Clean up: Remove any empty header artifacts (e.g., # \n)
-        safe_text = re.sub(r'^#{1,6}\s*$', '', safe_text, flags=re.MULTILINE)
-        
+        safe_text = re.sub(r"^#{1,6}\s*$", "", safe_text, flags=re.MULTILINE)
+
         # Render markdown
         try:
             # extra: tables, fenced codes, etc.
             # codehilite: code highlighting
-            html_out = markdown.markdown(safe_text, extensions=['extra', 'codehilite'])
+            html_out = markdown.markdown(safe_text, extensions=["extra", "codehilite"])
             # Final polish: Remove empty tags like <h1></h1> if they were generated
-            html_out = re.sub(r'<h[1-6]>\s*</h[1-6]>', '', html_out)
+            html_out = re.sub(r"<h[1-6]>\s*</h[1-6]>", "", html_out)
             return html_out
         except Exception as e:
             logger.warning(f"Markdown rendering failed: {e}")
             return safe_text
-    
+
     def _render_report(
         self,
         result: ScanResult,
@@ -102,13 +101,13 @@ class HTMLReportGenerator(BaseReportGenerator):
         """Render the HTML report."""
         severity_counts = self._get_severity_counts(result.findings)
         scanner_counts = self._get_scanner_counts(result.findings)
-        
+
         # Calculate Health Index
         health_index = self._calculate_health_index(severity_counts)
-        
+
         # Build findings HTML
         findings_html = self._render_findings(result.findings, sanitizer)
-        
+
         # Build the complete HTML
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -399,8 +398,8 @@ class HTMLReportGenerator(BaseReportGenerator):
         <div class="container header-content">
             <h1>🛡️ VEXA <span style="font-weight: 300; color: var(--text-muted); font-size: 1.1rem; margin-left: 10px; letter-spacing: 0.1em;">ADVANCED SECURITY AUDIT</span></h1>
             <div class="header-meta">
-                <div><strong>Target:</strong> {sanitizer.escape_html(metadata.scan_target or 'N/A')}</div>
-                <div><strong>Generated:</strong> {metadata.generated_at.strftime('%Y-%m-%d %H:%M:%S UTC')}</div>
+                <div><strong>Target:</strong> {sanitizer.escape_html(metadata.scan_target or "N/A")}</div>
+                <div><strong>Generated:</strong> {metadata.generated_at.strftime("%Y-%m-%d %H:%M:%S UTC")}</div>
             </div>
         </div>
     </header>
@@ -428,7 +427,7 @@ class HTMLReportGenerator(BaseReportGenerator):
                         <span class="stat-label">Total Issues</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-value" style="color: var(--critical);">{severity_counts.get('high', 0) + severity_counts.get('critical', 0)}</span>
+                        <span class="stat-value" style="color: var(--critical);">{severity_counts.get("high", 0) + severity_counts.get("critical", 0)}</span>
                         <span class="stat-label">Critical Risks</span>
                     </div>
                 </div>
@@ -453,7 +452,7 @@ class HTMLReportGenerator(BaseReportGenerator):
                 
                 <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
                     <div class="header-meta" style="text-align: left; display: flex; gap: 32px;">
-                        <div><strong style="color: var(--primary);">Job ID:</strong> {sanitizer.escape_html(metadata.job_id or 'N/A')}</div>
+                        <div><strong style="color: var(--primary);">Job ID:</strong> {sanitizer.escape_html(metadata.job_id or "N/A")}</div>
                         <div><strong style="color: var(--primary);">Time:</strong> {result.duration_seconds:.2f}s</div>
                     </div>
                     <div style="font-size: 0.75rem; font-weight: 800; color: white; background: var(--primary); padding: 4px 12px; border-radius: 6px;">v{metadata.tool_version}</div>
@@ -478,32 +477,51 @@ class HTMLReportGenerator(BaseReportGenerator):
     </div>
 </body>
 </html>"""
-    
-    def _render_findings(self, findings: List[Finding], sanitizer: OutputSanitizer) -> str:
+
+    def _render_findings(
+        self, findings: List[Finding], sanitizer: OutputSanitizer
+    ) -> str:
         """Render findings as professional cards."""
         if not findings:
             return '<div class="summary-card" style="text-align: center; padding: 40px;"><div class="stat-value" style="color: var(--success); font-size: 3rem;">✅</div><p style="font-weight: 600; margin-top: 10px;">No security issues detected.</p></div>'
-        
+
         html_parts = []
-        
+
         # Sort findings by severity
         severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
-        sorted_findings = sorted(findings, key=lambda f: severity_order.get(
-            f.severity.value if hasattr(f.severity, 'value') else f.severity, 5
-        ))
-        
+        sorted_findings = sorted(
+            findings,
+            key=lambda f: severity_order.get(
+                f.severity.value if hasattr(f.severity, "value") else f.severity, 5
+            ),
+        )
+
         for i, finding in enumerate(sorted_findings):
-            severity = finding.severity.value if hasattr(finding.severity, 'value') else finding.severity
+            severity = (
+                finding.severity.value
+                if hasattr(finding.severity, "value")
+                else finding.severity
+            )
             finding_id = f"finding-{i}"
-            
+
             # Tags for CWE
             tags_html = ""
             if finding.cwe_ids or finding.mitre_attack_id or finding.nist_controls:
-                tags = "".join(f'<span class="tag">{sanitizer.escape_html(cwe)}</span>' for cwe in finding.cwe_ids)
-                mitre = f'<span class="tag" style="background: #fff7ed; border-color: #fdba74;">{sanitizer.escape_html(finding.mitre_attack_id)}</span>' if finding.mitre_attack_id else ""
-                nist = " ".join(f'<span class="tag" style="background: #f0f9ff; border-color: #bae6fd;">{sanitizer.escape_html(nist)}</span>' for nist in finding.nist_controls)
+                tags = "".join(
+                    f'<span class="tag">{sanitizer.escape_html(cwe)}</span>'
+                    for cwe in finding.cwe_ids
+                )
+                mitre = (
+                    f'<span class="tag" style="background: #fff7ed; border-color: #fdba74;">{sanitizer.escape_html(finding.mitre_attack_id)}</span>'
+                    if finding.mitre_attack_id
+                    else ""
+                )
+                nist = " ".join(
+                    f'<span class="tag" style="background: #f0f9ff; border-color: #bae6fd;">{sanitizer.escape_html(nist)}</span>'
+                    for nist in finding.nist_controls
+                )
                 tags_html = f'<div class="tags">{tags}{mitre}{nist}</div>'
-            
+
             # Code snippet sections
             code_html = ""
             if finding.code_snippet:
@@ -516,7 +534,7 @@ class HTMLReportGenerator(BaseReportGenerator):
                     <pre class="code-snippet"><code>{sanitizer.escape_html(finding.code_snippet)}</code></pre>
                 </div>
                 """
-            
+
             html_parts.append(f"""
             <div class="finding-card" id="{finding_id}">
                 <div class="finding-header">
@@ -529,7 +547,7 @@ class HTMLReportGenerator(BaseReportGenerator):
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                         <span class="severity-badge" style="background: var(--{severity});">{severity}</span>
-                        {f'<span class="severity-badge" style="background: #64748b; font-size: 0.6rem; border: 1px solid #e2e8f0; color: #f8fafc;">🚫 FALSE POSITIVE ({finding.false_positive_confidence*100:.0f}%)</span>' if getattr(finding, "is_false_positive", False) else ""}
+                        {f'<span class="severity-badge" style="background: #64748b; font-size: 0.6rem; border: 1px solid #e2e8f0; color: #f8fafc;">🚫 FALSE POSITIVE ({finding.false_positive_confidence * 100:.0f}%)</span>' if getattr(finding, "is_false_positive", False) else ""}
                     </div>
                 </div>
                 <div class="finding-body">
@@ -544,32 +562,36 @@ class HTMLReportGenerator(BaseReportGenerator):
                 </div>
             </div>
             """)
-        
+
         return "\n".join(html_parts)
 
     def _render_toc(self, findings: List[Finding], sanitizer: OutputSanitizer) -> str:
         """Render a compact table of contents for quick navigation."""
         if len(findings) < 5:
             return ""
-            
+
         severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
-        sorted_findings = sorted(findings, key=lambda f: severity_order.get(
-            f.severity.value if hasattr(f.severity, 'value') else f.severity, 5
-        ))
-        
+        sorted_findings = sorted(
+            findings,
+            key=lambda f: severity_order.get(
+                f.severity.value if hasattr(f.severity, "value") else f.severity, 5
+            ),
+        )
+
         toc_items = []
         for i, f in enumerate(sorted_findings):
-            severity = f.severity.value if hasattr(f.severity, 'value') else f.severity
+            severity = f.severity.value if hasattr(f.severity, "value") else f.severity
             # Only show critical/high in TOC if many findings
-            if severity not in ["critical", "high"] and len(findings) > 20: continue
-            
+            if severity not in ["critical", "high"] and len(findings) > 20:
+                continue
+
             toc_items.append(f"""
                 <a href="#finding-{i}" class="toc-item">
                     <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--{severity}); box-shadow: 0 0 0 2px white, 0 0 0 3px var(--{severity}); flex-shrink: 0;"></span>
                     <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{sanitizer.escape_html(f.title)}</span>
                 </a>
             """)
-            
+
         return f"""
         <div class="toc-container">
             <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--text-muted); margin-bottom: 20px; font-weight: 700;">⚡ Quick Navigation</h3>
@@ -582,28 +604,31 @@ class HTMLReportGenerator(BaseReportGenerator):
     def _calculate_health_index(self, counts: Dict[str, int]) -> int:
         """Calculate weighted security health index (0-100)."""
         # Penalties as per TDD-style weighting
-        penalties = {
-            "critical": 25,
-            "high": 10,
-            "medium": 3,
-            "low": 1
-        }
-        total_penalty = sum(counts.get(sev, 0) * penalties.get(sev, 0) for sev in penalties)
+        penalties = {"critical": 25, "high": 10, "medium": 3, "low": 1}
+        total_penalty = sum(
+            counts.get(sev, 0) * penalties.get(sev, 0) for sev in penalties
+        )
         score = max(0, 100 - total_penalty)
         return score
 
     def _get_health_color(self, score: int) -> str:
         """Get color based on health score."""
-        if score >= 90: return "#10b981" # Green
-        if score >= 70: return "#f59e0b" # Yellow
-        if score >= 40: return "#f97316" # Orange
-        return "#ef4444" # Red
+        if score >= 90:
+            return "#10b981"  # Green
+        if score >= 70:
+            return "#f59e0b"  # Yellow
+        if score >= 40:
+            return "#f97316"  # Orange
+        return "#ef4444"  # Red
 
     def _get_health_label(self, score: int) -> str:
         """Get rating label based on health score."""
-        if score >= 90: return "Excellent"
-        if score >= 70: return "Good"
-        if score >= 40: return "Fair"
+        if score >= 90:
+            return "Excellent"
+        if score >= 70:
+            return "Good"
+        if score >= 40:
+            return "Fair"
         return "Poor"
 
     def _render_severity_distribution(self, counts: Dict[str, int], total: int) -> str:
@@ -612,7 +637,7 @@ class HTMLReportGenerator(BaseReportGenerator):
         for sev in ["critical", "high", "medium", "low"]:
             count = counts.get(sev, 0)
             percentage = (count / total * 100) if total > 0 else 0
-            
+
             rows.append(f"""
             <div class="severity-row">
                 <div class="severity-name">{sev}</div>
@@ -623,29 +648,33 @@ class HTMLReportGenerator(BaseReportGenerator):
             </div>
             """)
         return "\n".join(rows)
-    
-    def _render_enhanced_details(self, finding: Finding, sanitizer: OutputSanitizer) -> str:
+
+    def _render_enhanced_details(
+        self, finding: Finding, sanitizer: OutputSanitizer
+    ) -> str:
         """Render AI-enhanced details with specialized layout."""
         # Enhancement Grid
         details = ['<div class="enhancement-grid">']
-        
+
         # Detailed Analysis
         if finding.detailed_description:
             # Check for AI error message
             if "AI Analysis Failed" in finding.detailed_description:
                 header_title = "⚠️ Analysis Status"
-                content_html = f'<div style="color: #9a3412; font-style: italic; background: #fffaf5; padding: 16px; border-radius: 12px; border: 1px solid #ffedd5; font-size: 0.9rem; font-family: \'Inter\', sans-serif;">{sanitizer.escape_html(finding.detailed_description)}</div>'
+                content_html = f"<div style=\"color: #9a3412; font-style: italic; background: #fffaf5; padding: 16px; border-radius: 12px; border: 1px solid #ffedd5; font-size: 0.9rem; font-family: 'Inter', sans-serif;\">{sanitizer.escape_html(finding.detailed_description)}</div>"
             else:
                 header_title = "📝 Detailed Analysis"
-                content_html = self._render_markdown(finding.detailed_description, sanitizer)
-                
+                content_html = self._render_markdown(
+                    finding.detailed_description, sanitizer
+                )
+
             details.append(f"""
             <div class="enhancement-box" style="grid-column: span 2;">
                 <h4>{header_title}</h4>
                 <div class="enhancement-content">{content_html}</div>
             </div>
             """)
-            
+
         # Threat Analysis Section (Attack & Impact)
         details.append(f"""
             <div class="enhancement-box" style="border-left: 4px solid var(--primary); background: #eff6ff;">
@@ -653,7 +682,7 @@ class HTMLReportGenerator(BaseReportGenerator):
                 <div class="enhancement-content" style="color: #1e40af;">{self._render_markdown(finding.attack_scenario, sanitizer) if finding.attack_scenario else "<i>No attack scenario generated.</i>"}</div>
             </div>
             """)
-            
+
         details.append(f"""
             <div class="enhancement-box" style="border-left: 4px solid var(--primary); background: #eff6ff;">
                 <h4>💼 Business Impact</h4>
@@ -664,7 +693,7 @@ class HTMLReportGenerator(BaseReportGenerator):
         # Remediation Section
         if finding.remediation_code:
             is_error = "# AI Analysis Failed" in finding.remediation_code
-            
+
             if is_error:
                 header_style = "background: #fff7ed; border-bottom: 1px solid #fed7aa;"
                 text_style = "color: #c2410c;"
@@ -692,10 +721,13 @@ class HTMLReportGenerator(BaseReportGenerator):
                 </div>
             </div>
             """)
-            
+
         # Implementation Steps & Rollback
         if finding.implementation_steps:
-            steps_html = "".join(f'<li style="margin-bottom: 8px;">{self._render_markdown(step, sanitizer)}</li>' for step in finding.implementation_steps)
+            steps_html = "".join(
+                f'<li style="margin-bottom: 8px;">{self._render_markdown(step, sanitizer)}</li>'
+                for step in finding.implementation_steps
+            )
             details.append(f"""
             <div class="enhancement-box" style="grid-column: span 2;">
                 <h4>🛠️ Implementation Steps</h4>
@@ -708,7 +740,10 @@ class HTMLReportGenerator(BaseReportGenerator):
         # Verification Test Cases
         test_cases = getattr(finding, "test_cases", [])
         if test_cases:
-            tests_html = "".join(f'<div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem;"><span style="color: #15803d; font-weight: 700;">TEST</span>: {self._render_markdown(test, sanitizer)}</div>' for test in test_cases)
+            tests_html = "".join(
+                f'<div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem;"><span style="color: #15803d; font-weight: 700;">TEST</span>: {self._render_markdown(test, sanitizer)}</div>'
+                for test in test_cases
+            )
             details.append(f"""
             <div class="enhancement-box" style="grid-column: span 2;">
                 <h4>🧪 Verification Test Cases</h4>
@@ -725,11 +760,15 @@ class HTMLReportGenerator(BaseReportGenerator):
                 <div class="enhancement-content">{self._render_markdown(gcp_rec, sanitizer)}</div>
             </div>
             """)
-            
+
         aws_rec = getattr(finding, "aws_recommendation", "")
         if aws_rec:
             pillar = getattr(finding, "aws_well_architected_pillar", "")
-            pillar_html = f'<div style="font-size: 0.7rem; color: #c2410c; margin-bottom: 4px;"><strong>Pillar:</strong> {sanitizer.escape_html(pillar)}</div>' if pillar else ""
+            pillar_html = (
+                f'<div style="font-size: 0.7rem; color: #c2410c; margin-bottom: 4px;"><strong>Pillar:</strong> {sanitizer.escape_html(pillar)}</div>'
+                if pillar
+                else ""
+            )
             details.append(f"""
             <div class="enhancement-box" style="border-left: 4px solid #ff9900; background: #fffcf5;">
                 <h4><img src="https://a0.awsstatic.com/libra-css/images/logos/aws_smile_header_desktop.png" height="12" style="vertical-align: middle;"> AWS Recommendation</h4>
@@ -741,9 +780,14 @@ class HTMLReportGenerator(BaseReportGenerator):
             """)
 
         # Documentation Links
-        links = getattr(finding, "google_cloud_doc_links", []) or getattr(finding, "aws_doc_links", [])
+        links = getattr(finding, "google_cloud_doc_links", []) or getattr(
+            finding, "aws_doc_links", []
+        )
         if links:
-            links_html = "".join(f'<li><a href="{link}" target="_blank" style="color: var(--primary); text-decoration: none;">{sanitizer.escape_html(link)}</a></li>' for link in links)
+            links_html = "".join(
+                f'<li><a href="{link}" target="_blank" style="color: var(--primary); text-decoration: none;">{sanitizer.escape_html(link)}</a></li>'
+                for link in links
+            )
             details.append(f"""
             <div class="enhancement-box" style="grid-column: span 2;">
                 <h4>📚 Documentation & References</h4>

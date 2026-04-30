@@ -14,21 +14,23 @@ import tempfile
 MAX_CONCURRENT_JOBS: int = 25  # PERF-007: Maximum concurrent jobs
 JOB_TTL_HOURS: int = 24  # PERF-008: Job TTL for cleanup (hours)
 
+
 # Storage Paths
 def _get_default_home() -> Path:
     """Determine the default Vexa home directory with fallback for CI/Docker."""
     if os.environ.get("VEXA_HOME"):
         return Path(os.environ["VEXA_HOME"])
-    
+
     # In CI environments, default to /tmp to avoid permission issues in /github/home
     if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
         return Path(tempfile.gettempdir()) / ".vexa"
-        
+
     try:
         return Path.home() / ".vexa"
     except Exception:
         # Fallback for environments without a defined home directory
         return Path(tempfile.gettempdir()) / ".vexa"
+
 
 VEXA_HOME: Path = _get_default_home()
 JOBS_STORAGE_PATH: Path = VEXA_HOME / "jobs"
@@ -59,7 +61,9 @@ THREAT_MODEL_TIMEOUT: int = 900  # PERF-004: 10-15 minutes
 # Logging Configuration - REL-003, REL-004
 LOG_RETENTION_DAYS: int = 30
 LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-AUDIT_LOG_FORMAT: str = '{"timestamp": "%(asctime)s", "event": "%(message)s", "level": "%(levelname)s"}'
+AUDIT_LOG_FORMAT: str = (
+    '{"timestamp": "%(asctime)s", "event": "%(message)s", "level": "%(levelname)s"}'
+)
 
 
 def ensure_storage_dirs() -> None:
@@ -91,7 +95,7 @@ DEFAULT_CLOUD_PROVIDER: str = get_env("VEXA_CLOUD_PROVIDER", "none")
 
 def is_terms_accepted() -> bool:
     """Check if the user has accepted the beta terms.
-    
+
     In CI environments (GitHub Actions, GitLab, etc.), terms are auto-accepted.
     """
     if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):

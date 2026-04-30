@@ -31,7 +31,9 @@ class LocalVectorStore:
         self._tfidf_vectors: List[Dict[str, float]] = []
         self._is_built = False
 
-    def add_document(self, doc_id: str, text: str, metadata: Optional[dict] = None) -> None:
+    def add_document(
+        self, doc_id: str, text: str, metadata: Optional[dict] = None
+    ) -> None:
         """Add a document to the store."""
         self._documents.append(text)
         self._doc_ids.append(doc_id)
@@ -114,8 +116,8 @@ class LocalVectorStore:
             return 0.0
 
         dot_product = sum(vec_a[k] * vec_b[k] for k in common_keys)
-        mag_a = math.sqrt(sum(v ** 2 for v in vec_a.values()))
-        mag_b = math.sqrt(sum(v ** 2 for v in vec_b.values()))
+        mag_a = math.sqrt(sum(v**2 for v in vec_a.values()))
+        mag_b = math.sqrt(sum(v**2 for v in vec_b.values()))
 
         if mag_a == 0 or mag_b == 0:
             return 0.0

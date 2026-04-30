@@ -153,6 +153,7 @@ class AttestationBuilder:
         """Get the installed Vexa version."""
         try:
             from vexa import __version__
+
             return __version__
         except ImportError:
             return "unknown"
