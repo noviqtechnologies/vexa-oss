@@ -66,7 +66,7 @@ def show_beta_terms():
     console.print("─" * 50)
     console.print("[bold yellow][!] This is pre-release software. Use at your own risk.[/bold yellow]")
     console.print("[bold green][✓] Privacy First: This tool collects ZERO telemetry or usage data.[/bold green]")
-    console.print("\nBy continuing, you agree to our Beta Terms: [blue underline]https://codesecure.dev/beta-terms[/blue underline]")
+    console.print("\nBy continuing, you agree to our Beta Terms: [blue underline]https://usevexa.dev/beta-terms[/blue underline]")
     console.print()
     
     if Confirm.ask("Do you accept these terms?", default=False, console=console):

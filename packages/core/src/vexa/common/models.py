@@ -138,22 +138,7 @@ class EnhancedFinding(Finding):
     fp_explanation: str = Field(default="", description="FP reasoning")
 
 
-class KiroEnhancedFinding(EnhancedFinding):
-    """
-    Kiro-specific enhanced finding - SS-004.
-    """
-    kiro_recommendation: str = Field(default="", description="Kiro-specific recommendation")
-    kiro_well_architected_pillar: Optional[str] = Field(default=None, description="Related Well-Architected Pillar")
-    kiro_doc_links: List[str] = Field(default_factory=list, description="Kiro documentation links")
 
-
-class AzureEnhancedFinding(EnhancedFinding):
-    """
-    Azure-specific enhanced finding - SS-005.
-    """
-    azure_recommendation: str = Field(default="", description="Azure-specific recommendation")
-    azure_security_benchmark_pillar: Optional[str] = Field(default=None, description="Related Azure Security Benchmark Pillar")
-    azure_doc_links: List[str] = Field(default_factory=list, description="Azure documentation links")
 
 
 class Threat(BaseModel):
@@ -219,10 +204,10 @@ class ScanResult(BaseModel):
     success: bool = Field(default=True, description="Whether the scan was successful")
     # SS-001: Aggregated findings from all scanners
     # Using Union with discriminated types to preserve subclass fields during serialization
-    findings: List[Union[AzureEnhancedFinding, KiroEnhancedFinding, EnhancedFinding, Finding]] = Field(
+    findings: List[Union[EnhancedFinding, Finding]] = Field(
         default_factory=list, description="All findings (including AI-enhanced)"
     )
-    false_positives: List[Union[AzureEnhancedFinding, KiroEnhancedFinding, EnhancedFinding, Finding]] = Field(
+    false_positives: List[Union[EnhancedFinding, Finding]] = Field(
         default_factory=list, description="Findings flagged as false positives by AI"
     )
     scanners_run: List[str] = Field(default_factory=list, description="Scanners that were run")

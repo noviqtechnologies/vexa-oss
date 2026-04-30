@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 
 # In-toto v1 constants
 STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
-PREDICATE_TYPE_VEXA = "https://codesecure.dev/attestation/scan-result/v1"
+PREDICATE_TYPE_VEXA = "https://usevexa.dev/attestation/scan-result/v1"
 
 
 class AttestationBuilder:

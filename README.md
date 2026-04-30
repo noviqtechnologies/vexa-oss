@@ -1,6 +1,6 @@
 # Vexa 🛡️ — Air-Gapped Security Scanning with AI Fixes
 
-[![Beta](https://img.shields.io/badge/status-beta-orange)](https://codesecure.dev)
+[![Beta](https://img.shields.io/badge/status-beta-orange)](https://usevexa.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 
@@ -10,7 +10,7 @@ Vexa orchestrates Bandit, Semgrep, Checkov, detect-secrets, npm-audit, pip-audit
 
 ## 🔒 Why Vexa?
 
-| Feature | Vexa | Snyk | SonarLint |
+| Feature | Vexa | Provider A | Provider B |
 |:---|:---|:---|:---|
 | **Zero data egress (Ollama)** | ✅ | ❌ | ❌ |
 | **9 scanners in one tool** | ✅ | Partial | Partial |
@@ -30,7 +30,7 @@ pip install vexa-core vexa-cli
 ### Install from source (development)
 
 ```bash
-git clone https://github.com/noviqtechnologies/vexa.git
+git clone https://github.com/noviqtechnologies/vexa-oss.git
 cd vexa
 pip install -e packages/core -e packages/cli
 ```
@@ -113,7 +113,6 @@ Vexa exposes an MCP server that works with any MCP-compatible IDE:
 | `vexa-core` | Scanner engine, AI providers, reports, deduplication |
 | `vexa-cli` | Command-line interface (Click + Rich) |
 | `vexa-mcp` | MCP server for IDE integration (FastMCP) |
-| `vexa-cicd` | CI/CD quality gates, PR decoration, compliance reports |
 
 ## 🤝 Contributing
 
@@ -125,4 +124,4 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
-[Documentation](docs/QUICKSTART.md) | [VS Code Extension](packages/vscode-extension/README.md) | [Website](https://codesecure.dev)
+[Documentation](docs/QUICKSTART.md) | [Website](https://usevexa.dev)

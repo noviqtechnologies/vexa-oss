@@ -27,10 +27,7 @@ from vexa.ai_providers.openai_provider import get_openai_wrapper
 from vexa.ai_providers.anthropic_provider import get_anthropic_wrapper
 from vexa.ai_providers.ollama_provider import get_ollama_wrapper
 
-# CLI-based providers (disabled — moved to _legacy/)
-# from vexa.ai_providers._legacy.google_cli import get_gemini_wrapper
-# from vexa.ai_providers._legacy.kiro_cli import get_kiro_wrapper
-# from vexa.ai_providers._legacy.azure_cli import get_azure_wrapper
+
 from vexa.common.logging import get_logger, audit_logger
 from vexa.common.models import CloudProvider, Finding, EnhancedFinding
 from vexa.common.config import (
@@ -98,9 +95,7 @@ class AIProviderManager:
         self._anthropic = get_anthropic_wrapper()
         self._ollama = None  # Lazy-initialized when needed
 
-        # CLI-based providers (disabled)
-        self._kiro = None
-        self._azure = None
+
         
         # Privacy Vault mode flag — set when Ollama is active
         self.is_local_mode = False
@@ -167,10 +162,10 @@ class AIProviderManager:
                 self.is_local_mode = True
                 logger.info("Privacy Vault activated — all analysis runs locally via Ollama (%s)", model)
             elif override == "aws":
-                logger.warning("AWS Kiro CLI provider is disabled. Configure OpenAI or Anthropic instead.")
+                logger.warning("AWS provider requires OpenAI or Anthropic configuration.")
                 self._primary_provider = None
             elif override == "azure":
-                logger.warning("Azure CLI provider is disabled. Configure OpenAI or Anthropic instead.")
+                logger.warning("Azure provider requires OpenAI or Anthropic configuration.")
                 self._primary_provider = None
 
         else:
@@ -181,7 +176,7 @@ class AIProviderManager:
                 logger.warning("AWS cloud provider selected but no active SDK provider is configured. Use OpenAI or Anthropic.")
                 self._primary_provider = None
             elif self.cloud_provider == CloudProvider.AZURE:
-                logger.warning("Azure CLI provider is disabled. Use OpenAI or Anthropic instead.")
+                logger.warning("Azure cloud provider selected but no active SDK provider is configured. Use OpenAI or Anthropic.")
                 self._primary_provider = None
             elif self.cloud_provider == CloudProvider.OPENAI:
                 self._primary_provider = self._openai
@@ -286,9 +281,7 @@ class AIProviderManager:
             "is_primary": self._primary_provider == self._anthropic,
         }
 
-        # CLI-based providers are disabled
-        results["kiro"] = {"status": "disabled", "message": "AWS Kiro CLI provider is disabled. Use OpenAI or Anthropic instead.", "is_primary": False}
-        results["azure"] = {"status": "disabled", "message": "Azure CLI provider is disabled. Use OpenAI or Anthropic instead.", "is_primary": False}
+
 
         # Overall status
         results["has_available_provider"] = any(

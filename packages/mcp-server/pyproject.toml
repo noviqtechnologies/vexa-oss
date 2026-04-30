@@ -27,8 +27,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://codesecure.dev"
-Repository = "https://github.com/noviqtechnologies/vexa"
+Homepage = "https://usevexa.dev"
+Repository = "https://github.com/noviqtechnologies/vexa-oss"
 
 [tool.setuptools.packages.find]
 where = ["src"]

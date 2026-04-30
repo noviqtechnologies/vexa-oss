@@ -1,7 +1,7 @@
 [project]
-name = "vexa-monorepo"
+name = "vexa-oss"
 version = "1.0.44"
-description = "VEXA Unified Security Platform Monorepo"
+description = "Vexa 🛡️ — Open Source Air-Gapped Security Scanning with AI Fixes"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
