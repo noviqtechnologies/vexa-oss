@@ -1,0 +1,45 @@
+[project]
+name = "vexa-monorepo"
+version = "1.0.44"
+description = "VEXA Unified Security Platform Monorepo"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "vexa-core",
+    "vexa-cli",
+    "vexa-mcp",
+    "google-genai>=1.66.0",
+]
+
+[tool.setuptools]
+packages = []
+
+[tool.uv.sources]
+vexa-core = { workspace = true }
+vexa-cli = { workspace = true }
+vexa-mcp = { workspace = true }
+
+[tool.uv]
+workspace = { members = ["packages/*"], exclude = ["packages/vscode-extension"] }
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.12.0",
+    "pytest-cov>=4.1.0",
+    "pyinstaller>=6.0.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["packages/core/tests", "tests/unit", "tests/integration"]
+python_files = "test_*.py"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"

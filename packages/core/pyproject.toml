@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vexa-core"
+version = "1.0.44"
+description = "Enterprise-grade security analysis core engine — air-gapped scanning with AI-powered fixes"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Noviq Technologies", email = "support@noviqtechnologies.com"}]
+keywords = ["security", "sast", "vulnerability", "scanner", "privacy", "ai", "bandit", "semgrep", "checkov"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+
+dependencies = [
+    "pydantic>=2.0.0",
+    "jinja2>=3.1.0",
+    "asyncio>=3.4.3",
+    "rich>=13.0.0",
+    "mermaid-py>=0.1.0",
+    "markdown>=3.5.2",
+    "pygments>=2.17.2",
+    "packaging>=24.0",
+    # Scanners
+    "bandit>=1.7.0",
+    "semgrep>=1.0.0; sys_platform != 'win32'",
+    "checkov>=3.0.0",
+    "detect-secrets>=1.4.0",
+    "pip-audit>=2.0.0",
+    "pip-licenses>=4.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+google = ["google-genai>=1.0.0"]
+openai = ["openai>=1.0.0"]
+anthropicai = ["anthropic>=0.40.0"]
+# aws = ["kiro-cli>=1.0.0"] # Disabled: not on PyPI, CLI provider disabled
+aws = []
+all = ["vexa-core[google,openai,anthropicai]"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["vexa*"]
+
+[project.urls]
+Homepage = "https://codesecure.dev"
+Repository = "https://github.com/noviqtechnologies/vexa"
+Documentation = "https://github.com/noviqtechnologies/vexa/blob/main/docs/QUICKSTART.md"
+Issues = "https://github.com/noviqtechnologies/vexa/issues"

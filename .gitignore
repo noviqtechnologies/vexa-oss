@@ -1,0 +1,78 @@
+# Environments
+.venv/
+venv/
+ENV/
+env/
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache/
+
+# VS Code / TS
+out/
+.vscode-test/
+*.vsix
+tsconfig.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Vexa Specific
+.mcp/
+.gemini/
+.antigravity/
+.agent/
+codesecure_reports/
+codesecure_scan_reports/
+vexa_reports/
+vexa_scan_reports/
+report.html/
+test_sandbox/
+report_*.html
+report_*.json
+report_*.sarif
+report_*.md
+scan_*/
+packages/core/vexa_core-*/
+
+# IDE Settings
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.bak

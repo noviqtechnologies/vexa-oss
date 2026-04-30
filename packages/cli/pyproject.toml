@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vexa-cli"
+version = "1.0.44"
+description = "VEXA Command Line Interface — air-gapped security scanning with AI fixes"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Noviq Technologies", email = "support@noviqtechnologies.com"}]
+keywords = ["security", "cli", "scanner", "vulnerability", "sast"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+
+
+dependencies = [
+    "vexa-core>=1.0.35",
+    "click>=8.0.0",
+    "rich>=13.0.0",
+]
+
+[project.urls]
+Homepage = "https://codesecure.dev"
+Repository = "https://github.com/noviqtechnologies/vexa"
+
+[project.scripts]
+vexa = "vexa_cli.main:main_entry"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["vexa_cli*"]
+
+[tool.uv.sources]
+vexa-core = { workspace = true }
