@@ -21,13 +21,28 @@ Vexa orchestrates Bandit, Semgrep, Checkov, detect-secrets, npm-audit, pip-audit
 
 ## 🚀 Quick Start
 
-### Install from PyPI
+### Install from PyPI (Stable)
+
+Once published, you can install the latest stable version:
 
 ```bash
 pip install vexa-core vexa-cli
 ```
 
-### Install from source (development)
+### Install from GitHub (Latest)
+
+To install the current development version directly from GitHub:
+
+```bash
+# Install core engine
+pip install git+https://github.com/noviqtechnologies/vexa-oss.git#subdirectory=packages/core
+
+# Install CLI tool
+pip install git+https://github.com/noviqtechnologies/vexa-oss.git#subdirectory=packages/cli
+```
+
+### Install from source (Development)
+
 
 ```bash
 git clone https://github.com/noviqtechnologies/vexa-oss.git
