@@ -80,16 +80,11 @@ Your code is your business. Vexa gives you full control:
 
 ### VS Code Extension
 
-Install **Vexa for VS Code** from the [VS Code Marketplace](https://marketplace.visualstudio.com/publishers/noviqtechnologies) for inline diagnostics, one-click fixes, CodeLens annotations, and gutter icons.
+Coming soon!
 
 ### CI/CD (GitHub Actions)
 
-```yaml
-- uses: noviqtechnologies/vexa@v1
-  with:
-    fail-on: "critical,high"
-    format: "sarif,html"
-```
+Coming soon!
 
 ### MCP Protocol (Claude, Cursor, Antigravity)
 
