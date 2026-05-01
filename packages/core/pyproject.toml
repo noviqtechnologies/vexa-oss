@@ -4,17 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vexa-core"
-version = "1.0.44"
+version = "1.0.55"
 description = "Enterprise-grade security analysis core engine — air-gapped scanning with AI-powered fixes"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [{name = "Noviq Technologies", email = "support@noviqtechnologies.com"}]
 keywords = ["security", "sast", "vulnerability", "scanner", "privacy", "ai", "bandit", "semgrep", "checkov"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -56,7 +55,7 @@ where = ["src"]
 include = ["vexa*"]
 
 [project.urls]
-Homepage = "https://usevexa.dev"
+Homepage = "https://vexasec.io"
 Repository = "https://github.com/noviqtechnologies/vexa-oss"
 Documentation = "https://github.com/noviqtechnologies/vexa-oss/blob/main/docs/QUICKSTART.md"
 Issues = "https://github.com/noviqtechnologies/vexa-oss/issues"

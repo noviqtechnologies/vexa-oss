@@ -41,10 +41,21 @@ Vexa can generate code fixes for discovered vulnerabilities.
 
 ### Using Ollama (100% Local & Private)
 
-1. [Install Ollama](https://ollama.ai)
-2. Run with the ollama provider:
+1. [Install Ollama](https://ollama.ai/download) for your OS (Windows, macOS, Linux).
+2. Ensure the Ollama server is running (usually runs in the background automatically, or start it with `ollama serve`).
+3. By default, Vexa uses the `gemma4:26b` model (requires ~18-32GB of RAM). If you have less RAM, pull a smaller model:
    ```bash
-   vexa fix . --provider ollama
+   ollama pull llama3:8b
+   ```
+4. If you use a smaller model, create a `.vexa.yml` file in your project root to tell Vexa which model to use:
+   ```yaml
+   ai:
+     provider: "ollama"
+     model: "llama3:8b" # Fits easily in 8-16GB RAM
+   ```
+5. Run the scan with the Ollama provider:
+   ```bash
+   vexa fix . --ai-provider ollama
    ```
 
 ### Using Cloud Providers
@@ -53,7 +64,7 @@ Set your API key as an environment variable:
 
 ```bash
 export GOOGLE_API_KEY="your-key"
-vexa fix . --provider google
+vexa fix . --ai-provider google
 ```
 
 ## Next Steps

@@ -18,7 +18,7 @@ from vexa.common.config import is_terms_accepted, accept_terms
 from vexa.telemetry.client import TelemetryClient
 
 from vexa_cli.feedback import feedback
-from vexa_cli.ui.output import show_beta_terms, console
+from vexa_cli.ui.output import show_welcome_message, console
 
 logger = get_logger(__name__)
 
@@ -33,10 +33,9 @@ logger = get_logger(__name__)
 @click.pass_context
 def cli(ctx, non_interactive):
     """
-    Vexa - Enterprise Security Analysis CLI (Beta).
+    Vexa - Enterprise Security Analysis CLI.
 
     Cross-platform security scanner for Windows, Mac, and Linux.
-    This product is currently in Beta and undergoing active development.
     """
     ctx.ensure_object(dict)
     ctx.obj["non_interactive"] = non_interactive
@@ -45,7 +44,7 @@ def cli(ctx, non_interactive):
         if os.environ.get("CI", "").lower() == "true" or non_interactive:
             accept_terms()
         elif ctx.invoked_subcommand and ctx.invoked_subcommand != "init":
-            if not show_beta_terms():
+            if not show_welcome_message():
                 ctx.exit(0)
 
 

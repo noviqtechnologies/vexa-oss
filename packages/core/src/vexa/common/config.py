@@ -94,7 +94,7 @@ DEFAULT_CLOUD_PROVIDER: str = get_env("VEXA_CLOUD_PROVIDER", "none")
 
 
 def is_terms_accepted() -> bool:
-    """Check if the user has accepted the beta terms.
+    """Check if the user has accepted the terms.
 
     In CI environments (GitHub Actions, GitLab, etc.), terms are auto-accepted.
     """
@@ -104,6 +104,6 @@ def is_terms_accepted() -> bool:
 
 
 def accept_terms() -> None:
-    """Mark the beta terms as accepted."""
+    """Mark the terms as accepted."""
     ensure_storage_dirs()
     TERMS_ACCEPTANCE_FILE.touch()

@@ -52,6 +52,7 @@ class PerformanceManager:
         "coverage",
         ".idea",
         ".vscode",
+        "vexa_scan_reports",
     }
 
     @classmethod

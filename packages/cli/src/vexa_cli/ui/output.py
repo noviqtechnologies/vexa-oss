@@ -11,7 +11,7 @@ from vexa.common.config import accept_terms
 console = Console()
 
 
-def print_banner(version: str = __version__, is_beta: bool = True):
+def print_banner(version: str = __version__, is_beta: bool = False):
     """Print the official Vexa premium banner with perfect alignment."""
     title = "Vexa — Security Autopilot"
     version_str = f"v{version}"
@@ -55,8 +55,8 @@ def print_warning(message: str):
     console.print(f"[bold gold1]⚠ {message}[/bold gold1]")
 
 
-def show_beta_terms():
-    """Show Beta terms and ask for acceptance."""
+def show_welcome_message():
+    """Show welcome message and check terms acceptance."""
     ctx = click.get_current_context(silent=True)
     is_non_interactive = (
         ctx.obj.get("non_interactive", False) if ctx and ctx.obj else False
@@ -67,23 +67,22 @@ def show_beta_terms():
         accept_terms()
         return True
 
-    console.print("\n[bold white]Welcome to the Vexa CLI Beta![/bold white]")
+    console.print("\n[bold white]Welcome to Vexa CLI![/bold white]")
     console.print("─" * 50)
-    console.print(
-        "[bold yellow][!] This is pre-release software. Use at your own risk.[/bold yellow]"
-    )
     console.print(
         "[bold green][✓] Privacy First: This tool collects ZERO telemetry or usage data.[/bold green]"
     )
     console.print(
-        "\nBy continuing, you agree to our Beta Terms: [blue underline]https://usevexa.dev/beta-terms[/blue underline]"
+        "\nFor documentation and support, visit: [blue underline]https://usevexa.dev[/blue underline]"
     )
     console.print()
 
-    if Confirm.ask("Do you accept these terms?", default=False, console=console):
-        accept_terms()
-        print_success("Terms accepted. Welcome aboard!")
-        return True
-    else:
-        print_error("You must accept the terms to use Vexa CLI.")
-        return False
+    if not os.path.exists(os.path.join(os.path.expanduser("~"), ".vexa", ".terms_accepted")):
+        if Confirm.ask("Do you agree to the Terms of Service?", default=True, console=console):
+            accept_terms()
+            print_success("Terms accepted. Welcome aboard!")
+            return True
+        else:
+            print_error("You must accept the terms to use Vexa CLI.")
+            return False
+    return True

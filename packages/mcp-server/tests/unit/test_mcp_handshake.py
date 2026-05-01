@@ -34,12 +34,4 @@ class TestMCPHandshakeStability:
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(never_respond(), timeout=2)
 
-    def test_auto_remediate_has_new_params(self):
-        """MCP-HS: Confirm tools registered successfully with parameters."""
-        from vexa_mcp.scanner.server import server
 
-        tools = server._tool_manager.list_tools()
-        rem_tool = next(
-            (t for t in tools if t.name == "auto_remediate_workspace"), None
-        )
-        assert rem_tool is not None, "auto_remediate_workspace tool not found"

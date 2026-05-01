@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch, AsyncMock
 
 # Attempt to import to verify syntax, assuming pytest-asyncio is available
-from vexa_mcp.scanner.server import auto_remediate_workspace
+from vexa_mcp.scanner.server import _auto_remediate_workspace_internal as auto_remediate_workspace
 from vexa.common.models import EnhancedFinding, ScanResult
 
 
@@ -50,8 +50,8 @@ async def test_auto_remediate_workspace_dry_run():
         )
 
         assert "Vexa Autonomous Agency" in output
-        assert "Dry Run: True" in output
-        assert "+++ Suggested Fix for Hardcoded Secret" in output
+        assert "Mode: Dry Run" in output
+        assert "+++ Fix: Hardcoded Secret" in output
         assert "secret = os.environ.get('SECRET')" in output
 
 
@@ -98,8 +98,8 @@ async def test_auto_remediate_workspace_apply_fix():
                 path=temp_dir, severity_threshold="medium", dry_run=False
             )
 
-            assert "Applied 1 patches securely" in output
-            assert "Snapshot available at" in output
+            assert "Applied 1 patches from 1 actionable findings" in output
+            assert "Snapshot:" in output
 
             # Verify file was actually modified
             assert "os.environ.get('SECRET')" in test_file.read_text(encoding="utf-8")
@@ -117,5 +117,4 @@ async def test_auto_remediate_workspace_safe_failure():
         output = await auto_remediate_workspace(path=".", dry_run=True)
 
         # Tool must swallow the error and return a string (not raise)
-        assert "Scan Engine failed securely" in output
-        assert "Docker not running" in output
+        assert "Scan failed \u2014 Docker not running" in output

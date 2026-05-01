@@ -11,23 +11,35 @@ logger = get_logger(__name__)
 class GenericPromptBuilder:
     """Build structured prompts for AI Providers (Gemini, OpenAI, Anthropic)."""
 
-    SYSTEM_CONTEXT_TEMPLATE = """You are Vexa, an expert AI security assistant.
+    SYSTEM_CONTEXT_TEMPLATE = """You are Vexa, an elite AI Security Engineer specializing in cloud-native application security and automated remediation.
 
-**Application context:**
-- **Application name:** {app_name}
-- **Cloud services detected:** {cloud_services}
+### ROLE AND OBJECTIVE
+Your goal is to analyze security findings and provide high-fidelity, production-ready remediation. You must be precise, objective, and strictly follow the structured format to ensure automated parsing.
 
-Analyze the following security findings and provide enhanced details in Markdown format.
-Strictly adhere to the **Critical Requirements** and the specific cloud guide below.
+### APPLICATION CONTEXT
+- **Application Name:** {app_name}
+- **Cloud Environment:** {cloud_services}
 
-1. The remediation code you generate MUST be highly secure.
-2. Ensure you do not introduce any new vulnerabilities or regressions while fixing the original flaw.
-3. **ZERO-CHATTER RULE**: Do NOT include any explanations, comments, conversational text, or multiple variants inside the triple-backtick remediation block. The block MUST contain ONLY the pure, production-ready source code for a direct drop-in replacement.
-4. Maintain a highly professional, objective, and corporate tone in all generated reports.
+### CRITICAL OPERATIONAL CONSTRAINTS
+1. **ZERO HALLUCINATION POLICY**: 
+   - Only use information provided in the finding or the local workspace context.
+   - If a finding is a False Positive (FP), explicitly state it and return the ORIGINAL code.
+   - Never invent environment variables, library names, or API endpoints that do not exist in the context.
+2. **REMEDIATION INTEGRITY (FIX-03)**:
+   - **Drop-in Replacement**: The code block must contain ONLY the replacement for the vulnerable snippet.
+   - **Signature Preservation**: Maintain all original variable names, function signatures, and class names.
+   - **Logic Continuity**: If the original was an assignment, the fix must be an assignment.
+   - **Minimalism**: Apply the least intrusive change required to resolve the vulnerability.
+3. **ZERO-CHATTER RULE**: 
+   - The remediation code block (triple backticks) MUST NOT contain comments, explanations, or multiple variants. 
+   - It must be pure, copy-pasteable source code.
+4. **TONE**: Maintain a professional, technical, and corporate tone. Avoid flowery language.
 
+### ENHANCEMENT GUIDE
 {enhancement_guide}
 
-For each finding, provide the analysis in the exact structure specified. **NEVER leave the Remediation Code block empty; it must contain a valid code fix.** Failure to follow these requirements will result in invalid analysis."""
+### OUTPUT STRUCTURE
+For each finding, you MUST provide the analysis in the exact Markdown structure specified below. Failure to follow the structure or leaving the Remediation Code block empty will result in a system failure."""
 
     def build_batch_prompt(
         self,
@@ -59,7 +71,7 @@ For each finding, provide the analysis in the exact structure specified. **NEVER
         )
 
         prompt = f"{system_context}\n\n"
-        prompt += "## Security Findings to Analyze\n\n"
+        prompt += "## SECURITY FINDINGS TO ANALYZE\n\n"
 
         rag_contexts = rag_contexts or {}
 
@@ -70,7 +82,7 @@ For each finding, provide the analysis in the exact structure specified. **NEVER
 - **Title**: {finding.title}
 - **File**: {finding.file_path}
 - **Lines**: {finding.line_start}-{finding.line_end}
-- **Code**:
+- **Vulnerable Code Snippet**:
 ```
 {finding.code_snippet}
 ```
@@ -80,10 +92,11 @@ For each finding, provide the analysis in the exact structure specified. **NEVER
             finding_id = str(getattr(finding, "id", ""))
             if finding_id and finding_id in rag_contexts:
                 prompt += f"""#### Local Workspace Context (Zero-Telemetry RAG)
+The following code context from the same workspace is provided to help you determine if this is a False Positive or to provide a more accurate fix:
 ```
 {rag_contexts[finding_id]}
 ```
-Use this local context to assess whether this finding is a false positive.
+**Instruction**: Use this context to verify if the vulnerability is actually reachable or if it's already mitigated elsewhere in the file.
 
 """
 
@@ -93,72 +106,62 @@ Use this local context to assess whether this finding is a false positive.
     def _get_response_template(self, is_workspace_scan: bool) -> str:
 
         remediation_instruction = """#### Remediation Code
-Provide a direct, exact, production-ready drop-in replacement for the specific lines of the provided vulnerable snippet. 
+Provide a direct, production-ready drop-in replacement for the vulnerable snippet.
 
-**SAFETY GUARDRAILS (FIX-03)**:
-1. **Variable Persistence**: Maintain all original variable names, function signatures, and class names exactly as they appear in the original snippet.
-2. **Logic Integrity**: Do NOT change the logic type. If the original snippet is an assignment (e.g., `VAR = "..."`), the remediation MUST also be an assignment. If it is a conditional check, it must remain a conditional check.
-3. **Least Intrusive**: Perform the minimum amount of change necessary to resolve the security vulnerability while following best practices.
-4. **Indentation**: Preserve all original indentation exactly as given. 
-
-**STRICT OUTPUT RULES**:
-- Do NOT include any surrounding code that was not in the original snippet.
-- Do NOT include line numbers at the beginning of the lines. Only output the raw code.
-- Provide REAL, working code designed for production. Do NOT output generic examples.
-- Do NOT truncate the snippet. 
-- Do NOT include ANY conversational text, explanations, or multiple choices inside the triple-backtick block. 
-- The block must contain ONLY pure, copy-pasteable source code.
+**Strict Rules**:
+- No line numbers.
+- No conversational text inside the block.
+- Preserve indentation.
+- If it's an FP, return the original code exactly.
 
 ```
 [Fixed code snippet only]
 ```"""
 
         template = """
-## Required Response Format (for each finding)
+## REQUIRED RESPONSE FORMAT (FOR EACH FINDING)
 
 ### Finding N Analysis
 """
 
-        # In workspace scans, we prioritize False Positives and rapid remediation.
-        # In detailed scans, we include extensive breakdown.
         if is_workspace_scan:
             template += f"""
 #### False Positive Analysis
 - **Is False Positive**: [true|false]
-- **Confidence**: [0.0-1.0]
-- **Explanation**: [Required]
+- **Confidence**: [0.0 to 1.0]
+- **Explanation**: [Provide a concise technical justification for the FP status]
 
 {remediation_instruction}
 """
         else:
             template += f"""
 #### Detailed Description
-[Comprehensive explanation of the vulnerability]
+[Provide a deep technical analysis of the vulnerability, why it occurs, and the specific risk it poses to this application.]
 
 #### Attack Scenario
-[Step-by-step attack scenario showing how this could be exploited]
+[Describe a step-by-step technical exploit path that an attacker could take to leverage this vulnerability.]
 
 #### Business Impact
-[Impact on business operations, data, reputation. Do NOT include revenue loss details or financial estimates. Keep the tone professional.]
+[Explain the potential impact on data confidentiality, integrity, and availability. Focus on technical and operational risks.]
 
 #### False Positive Analysis
 - **Is False Positive**: [true|false]
-- **Confidence**: [0.0-1.0]
-- **Explanation**: [Required]
+- **Confidence**: [0.0 to 1.0]
+- **Explanation**: [Provide a concise technical justification for the FP status]
 
 {remediation_instruction}
 
 #### Implementation Steps
-1. [Step 1]
-2. [Step 2]
-3. [Step 3]
+1. [Step 1: Preparation]
+2. [Step 2: Code Change]
+3. [Step 3: Verification]
 
 #### Verification Test Cases
-- **Test Case 1**: [Description] -> **Expected Output**: [Output]
+- **Test Case 1**: [Description of the test] -> **Expected Result**: [What success looks like]
 
-#### Google Cloud Documentation
-- [Link 1](https://cloud.google.com/...)
-- [Link 2](https://cloud.google.com/...)
+#### Documentation References
+- [Reference 1](URL)
+- [Reference 2](URL)
 """
         return template
 
@@ -166,6 +169,7 @@ Provide a direct, exact, production-ready drop-in replacement for the specific l
 class GenericMarkdownParser:
     """Parse Markdown responses from AI Providers into EnhancedFindings."""
 
+    # Improved pattern to be more resilient to variations in "Finding N Analysis"
     FINDING_PATTERN = (
         r"### \s*(?:Analysis\s+for\s+)?Finding\s*(\d+)(?::)?(?:\s*Analysis)?.*?(?:\n|$)"
     )
@@ -175,7 +179,7 @@ class GenericMarkdownParser:
         "attack_scenario": r"#### Attack Scenario(?::)?\s*(.+?)(?=####|$)",
         "business_impact": r"#### Business Impact(?::)?\s*(.+?)(?=####|$)",
         "remediation_code": r"#### (?:Remediation Code|Proposed Fix)[^\n]*\n*```(?:\w+)?\s*(.*?)\s*```",
-        "google_cloud_recommendation": r"#### (?:Google Cloud )?Recommendation(?::)?\s*(.+?)(?=####|$)",
+        "recommendation": r"#### (?:Google Cloud |Documentation )?References?(?::)?\s*(.+?)(?=####|$)",
         "test_cases": r"#### Verification Test Cases(?::)?\s*(.+?)(?=####|$)",
     }
 
@@ -211,7 +215,7 @@ class GenericMarkdownParser:
 
                 remediation = self._extract("remediation_code", section)
 
-                # Pre-process remediation to strip hallucinated line numbers from AI (e.g., '15   subprocess.Popen()')
+                # Pre-process remediation to strip hallucinated line numbers from AI
                 if remediation:
                     cleaned_lines = []
                     for line in remediation.split("\n"):
@@ -225,14 +229,12 @@ class GenericMarkdownParser:
 
                 enhanced.append(
                     EnhancedFinding(
-                        # Original fields
                         id=original.id,
                         scanner=original.scanner,
                         severity=original.severity,
                         title=original.title,
                         description=original.description,
                         file_path=original.file_path,
-                        # Parsed enhanced fields
                         detailed_description=detailed_description,
                         attack_scenario=self._extract("attack_scenario", section),
                         business_impact=self._extract("business_impact", section),
@@ -251,12 +253,11 @@ class GenericMarkdownParser:
                         test_cases=self._extract_list_items("test_cases", section),
                         rollback_procedure="",
                         google_cloud_recommendation=self._extract(
-                            "google_cloud_recommendation", section
+                            "recommendation", section
                         ),
                         google_cloud_doc_links=self._extract_links(section),
                         cwe_ids=original.cwe_ids,
                         owasp_category=original.owasp_category,
-                        # IMPORTANT: Centralized FP logic mapping
                         false_positive_confidence=self._extract_fp_confidence(section),
                         is_false_positive=self._extract_fp_status(section),
                         fp_explanation=self._extract_fp_explanation(section),
@@ -277,21 +278,18 @@ class GenericMarkdownParser:
         match = re.search(pattern, section, re.DOTALL | re.IGNORECASE)
         res = match.group(1).strip() if match and match.groups() else ""
 
-        # SPECIAL CASE: If remediation_code is empty, try to find ANY code block in this section
+        # Fallback for remediation_code
         if field == "remediation_code" and not res:
-            logger.debug(
-                "Remediation Code section not found. Attempting fallback to any code block."
-            )
             code_blocks = re.findall(r"```(?:\w+)?\s*(.*?)\s*```", section, re.DOTALL)
             for block in code_blocks:
-                if len(block.strip()) > 10:  # Likely actual code
+                if len(block.strip()) > 10:
                     return block.strip()
 
         return res
 
     def _extract_list(self, title: str, section: str) -> List[str]:
         pattern = rf"#### {title}\s+(.+?)(?=####|$)"
-        match = re.search(pattern, section, re.DOTALL)
+        match = re.search(pattern, section, re.DOTALL | re.IGNORECASE)
         if not match:
             return []
         content = match.group(1)
@@ -304,11 +302,12 @@ class GenericMarkdownParser:
         return re.findall(r"(?:-|\*|\d+\.)\s+(.+)$", content, re.MULTILINE)
 
     def _extract_links(self, section: str) -> List[str]:
-        pattern = r"http[s]?://cloud\.google\.com/[^\s\)]+"
+        # Broaden link extraction to any valid URL
+        pattern = r"https?://[^\s\)]+"
         return re.findall(pattern, section)
 
     def _extract_fp_confidence(self, section: str) -> float:
-        match = re.search(r"\*\*Confidence\*\*:\s*([\d.]+)", section)
+        match = re.search(r"\*\*Confidence\*\*:\s*\[?([\d.]+)\]?", section, re.IGNORECASE)
         try:
             return float(match.group(1)) if match else 0.0
         except ValueError:
@@ -316,12 +315,10 @@ class GenericMarkdownParser:
 
     def _extract_fp_status(self, section: str) -> bool:
         match = re.search(
-            r"\*\*Is False Positive\*\*:\s*(true|false)", section, re.IGNORECASE
+            r"\*\*Is False Positive\*\*:\s*\[?(true|false)\]?", section, re.IGNORECASE
         )
-        # Note: We let the provider manager do the threshold logic.
-        # Here we just parse what the AI explicitly answered.
         return match.group(1).lower() == "true" if match else False
 
     def _extract_fp_explanation(self, section: str) -> str:
-        match = re.search(r"\*\*Explanation\*\*:\s*(.+)", section)
+        match = re.search(r"\*\*Explanation\*\*:\s*\[?(.+?)\]?(?:\n|$)", section, re.IGNORECASE)
         return match.group(1).strip() if match else ""

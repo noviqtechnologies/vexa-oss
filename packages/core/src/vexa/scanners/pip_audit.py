@@ -36,15 +36,13 @@ class PipAuditScanner(BaseScanner):
         self, path: Path, exclusions: Optional[List[str]] = None
     ) -> List[str]:
         """Build pip-audit command."""
-        # Check for requirements.txt
         req_file = path / "requirements.txt" if path.is_dir() else path
 
-        cmd = ["pip-audit", "-f", "json"]
+        # If we are scanning a directory and requirements.txt doesn't exist, skip to avoid scanning the global env
+        if not req_file.exists() or req_file.name != "requirements.txt":
+            return []
 
-        if req_file.exists() and req_file.name == "requirements.txt":
-            cmd.extend(["-r", str(req_file)])
-
-        return cmd
+        return ["pip-audit", "-f", "json", "-r", str(req_file)]
 
     def parse_output(self, output: str, target_path: Path) -> List[Finding]:
         """Parse pip-audit JSON output into normalized findings."""

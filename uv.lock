@@ -4403,7 +4403,7 @@ wheels = [
 
 [[package]]
 name = "vexa-cli"
-version = "1.0.44"
+version = "1.0.55"
 source = { editable = "packages/cli" }
 dependencies = [
     { name = "click" },
@@ -4420,7 +4420,7 @@ requires-dist = [
 
 [[package]]
 name = "vexa-core"
-version = "1.0.44"
+version = "1.0.55"
 source = { editable = "packages/core" }
 dependencies = [
     { name = "asyncio" },
@@ -4482,7 +4482,7 @@ provides-extras = ["google", "openai", "anthropicai", "aws", "all"]
 
 [[package]]
 name = "vexa-mcp"
-version = "1.0.44"
+version = "1.0.55"
 source = { editable = "packages/mcp-server" }
 dependencies = [
     { name = "fastmcp" },
@@ -4499,7 +4499,7 @@ requires-dist = [
 
 [[package]]
 name = "vexa-oss"
-version = "1.0.44"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "google-genai" },

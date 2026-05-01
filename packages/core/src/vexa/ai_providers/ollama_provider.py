@@ -264,6 +264,15 @@ class OllamaProvider(BaseAIProvider):
             )
             data = json.loads(response.read().decode("utf-8"))
             return data.get("response", "")
+        except urllib.error.HTTPError as e:
+            try:
+                error_body = e.read().decode("utf-8")
+                error_json = json.loads(error_body)
+                if "error" in error_json:
+                    raise RuntimeError(f"Ollama reported an error: {error_json['error']}")
+            except Exception:
+                pass
+            raise RuntimeError(f"Local AI request failed: HTTP Error {e.code}: {e.reason}")
         except ConnectionRefusedError:
             raise RuntimeError("Local AI is not running. Start it with: ollama serve")
         except Exception as e:

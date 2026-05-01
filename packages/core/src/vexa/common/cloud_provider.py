@@ -104,6 +104,7 @@ class ProviderAvailability:
             CloudProvider.GOOGLE,
             CloudProvider.OPENAI,
             CloudProvider.ANTHROPIC,
+            CloudProvider.OLLAMA,
         ):
             from vexa.ai_providers.manager import AIProviderManager
 
@@ -113,6 +114,8 @@ class ProviderAvailability:
                 p = manager._gemini
             elif provider == CloudProvider.OPENAI:
                 p = manager._openai
+            elif provider == CloudProvider.OLLAMA:
+                p = manager._ollama
             else:
                 p = manager._anthropic
 

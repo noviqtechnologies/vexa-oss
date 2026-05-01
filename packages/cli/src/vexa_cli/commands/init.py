@@ -11,7 +11,7 @@ from vexa_cli.ui.output import (
     print_banner,
     print_info,
     print_success,
-    show_beta_terms,
+    show_welcome_message,
     console,
 )
 
@@ -172,7 +172,7 @@ def configure_ai():
         default=True,
         console=console,
     ):
-        # Restricted to supported providers for beta
+        # Restricted to supported providers
         choices = ["google", "openai", "anthropic", "ollama"]
         provider = Prompt.ask(
             "Select AI Provider", choices=choices, default="google", console=console
@@ -390,7 +390,7 @@ def init(ctx, guardrails: bool):
     non_interactive = ctx.obj.get("non_interactive", False)
 
     if not is_terms_accepted():
-        if not show_beta_terms() and not non_interactive:
+        if not show_welcome_message() and not non_interactive:
             sys.exit(1)
 
     print_info("Welcome to the Vexa setup wizard!")

@@ -68,6 +68,12 @@ report_*.sarif
 report_*.md
 scan_*/
 packages/core/vexa_core-*/
+.vexa/
+.vexa.yml
+output.json
+*.patch
+*.diff
+vexa_fix_reports/
 
 # IDE Settings
 .vscode/

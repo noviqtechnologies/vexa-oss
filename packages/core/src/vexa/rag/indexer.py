@@ -97,6 +97,7 @@ class WorkspaceIndexer:
         "build",
         ".eggs",
         "*.egg-info",
+        "vexa_scan_reports",
     }
 
     MAX_FILE_SIZE_BYTES = 512_000  # Skip files larger than 500KB

@@ -332,60 +332,11 @@ def scan(
         cloud_provider = CloudProvider(ai_provider)
 
     if cloud_provider != CloudProvider.NONE:
-        status = asyncio.run(
-            ProviderAvailability.check_provider(cloud_provider, check_quota=True)
+        from vexa_cli.commands._scan_helpers import ensure_ai_availability
+
+        cloud_provider = asyncio.run(
+            ensure_ai_availability(cloud_provider, is_ci, is_non_interactive, console)
         )
-        if not status["available"]:
-            console.print(
-                f"\n[bold yellow]⚠ AI Provider '{cloud_provider.value}' not ready: {status['error']}[/bold yellow]"
-            )
-
-            # If interactive mode, offer to enter key
-            if not is_ci and not is_non_interactive:
-                key_var = {
-                    CloudProvider.GOOGLE: "GOOGLE_API_KEY",
-                    CloudProvider.OPENAI: "OPENAI_API_KEY",
-                    CloudProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
-                }.get(cloud_provider)
-
-                if key_var and not os.environ.get(key_var):
-                    from rich.prompt import Prompt
-
-                    new_key = Prompt.ask(
-                        f"Enter your {cloud_provider.value.title()} API Key now",
-                        password=True,
-                    )
-                    if new_key:
-                        os.environ[key_var] = new_key
-                        # Re-check availability with the new key
-                        status = asyncio.run(
-                            ProviderAvailability.check_provider(
-                                cloud_provider, check_quota=True
-                            )
-                        )
-                        if status["available"]:
-                            print_success("API Key accepted for this session.")
-
-            if not status["available"]:
-                if is_ci or is_non_interactive:
-                    print_warning(
-                        "Non-interactive / CI environment detected. Automatically proceeding without AI enrichment."
-                    )
-                    cloud_provider = CloudProvider.NONE
-                    ai_provider = None
-                elif Confirm.ask(
-                    "Would you like to proceed with the scan without AI enrichment?",
-                    default=False,
-                    console=console,
-                ):
-                    print_info("Proceeding with AI capabilities disabled.")
-                    cloud_provider = CloudProvider.NONE
-                    ai_provider = None
-                else:
-                    print_error(
-                        "Scan aborted. Please configure the AI provider and try again."
-                    )
-                    sys.exit(0)
 
     formats_to_gen = list(format)
     if "all" in formats_to_gen:

@@ -10,8 +10,12 @@ Implements:
 """
 
 import asyncio
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+# Suppress all deprecation warnings to prevent MCP JSON-RPC corruption on stdout
+warnings.filterwarnings("ignore")
 
 from fastmcp import FastMCP, Context
 
@@ -25,7 +29,6 @@ from vexa.reports.generator import get_report_generator
 from vexa.common.models import Finding
 from vexa.common.models import ScanResult
 from vexa.common.config_manager import load_config
-
 
 logger = get_logger(__name__)
 
@@ -536,6 +539,25 @@ async def auto_remediate_workspace(
     Returns:
         LLM-readable Fix Plan detailing what was (or will be) changed. Exit code is always 0.
     """
+    return await _auto_remediate_workspace_internal(
+        path=path,
+        severity_threshold=severity_threshold,
+        dry_run=dry_run,
+        max_iterations=max_iterations,
+        verify_only=verify_only,
+        ctx=ctx,
+    )
+
+
+async def _auto_remediate_workspace_internal(
+    path: str = ".",
+    severity_threshold: str = "medium",
+    dry_run: bool = True,
+    max_iterations: int = 1,
+    verify_only: bool = False,
+    ctx: Any = None,
+) -> str:
+    """Internal logic for autonomous remediation."""
     import uuid
     from vexa.common.models import ScanMode, CloudProvider as CP
     from vexa_mcp.scanner.remediation_engine import RemediationEngine

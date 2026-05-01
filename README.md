@@ -1,6 +1,6 @@
 # Vexa 🛡️ — Air-Gapped Security Scanning with AI Fixes
 
-[![Beta](https://img.shields.io/badge/status-beta-orange)](https://usevexa.dev)
+[![GA](https://img.shields.io/badge/status-GA-green)](https://vexasec.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 
@@ -63,13 +63,26 @@ brew install noviqtechnologies/tap/vexa
 vexa scan .
 
 # Scan and generate AI-powered fixes (using Ollama — 100% local)
-vexa fix . --provider ollama
+vexa fix . --ai-provider ollama
 
 # Scan with a cloud AI provider
-vexa fix . --provider google
+vexa fix . --ai-provider google
 
 # Check scanner health
 vexa doctor
+```
+
+### Development (using uv)
+
+If you are running from source in this repository:
+
+```bash
+# Sync the environment
+uv sync
+
+# Run scan/fix from source
+uv run vexa scan .
+uv run vexa fix . --ai-provider ollama
 ```
 
 ## 🛠️ Commands
@@ -88,6 +101,7 @@ vexa doctor
 Your code is your business. Vexa gives you full control:
 
 1. **Privacy Vault (Local):** Run 100% locally with Ollama. No code snippets or metadata leave your machine. Ever.
+   > **Note:** The default model (`gemma4:26b`) requires ~18-32GB of RAM. If you hit out-of-memory errors, configure a smaller model (like `llama3:8b`) in your `.vexa.yml` file. See [QUICKSTART.md](docs/QUICKSTART.md) for setup instructions.
 2. **Cloud AI:** Use Gemini, OpenAI, or Anthropic for analysis. Code snippets are sent to the AI provider you choose.
 3. **No AI:** Run scanners only. Zero network calls.
 
@@ -103,8 +117,11 @@ Coming soon!
 
 ### MCP Protocol (Claude, Cursor, Antigravity)
 
-Vexa exposes an MCP server that works with any MCP-compatible IDE:
+Vexa exposes an MCP server that works with any MCP-compatible IDE.
 
+**Important Note on AI Delegation**: When using Vexa via MCP, your chat AI (e.g., Claude) acts only as the *orchestrator*. The actual security analysis and code generation is handled by the AI provider configured in your `.vexa.yml` file (e.g., local Ollama). This ensures consistent, enterprise-grade security results regardless of which IDE you use.
+
+If you installed Vexa globally, configure your client (like Claude Desktop) as follows:
 ```json
 {
   "mcpServers": {
@@ -115,6 +132,25 @@ Vexa exposes an MCP server that works with any MCP-compatible IDE:
   }
 }
 ```
+
+**Running from Source / `uv` Users:**
+If you are running Vexa from source, you MUST bypass terminal wrappers (like `cmd.exe`) and use the `--quiet` flag to prevent `uv` from polluting standard output and corrupting the JSON-RPC stream:
+```json
+{
+  "mcpServers": {
+    "vexa": {
+      "command": "uv",
+      "args": ["--directory", "/absolute/path/to/vexa-oss", "run", "--quiet", "vexa", "mcp-server"]
+    }
+  }
+}
+```
+
+> 📖 **Read the [Full MCP Documentation](docs/MCP.md)** for advanced setup instructions, handling API environment variables, and copy-paste prompt examples to use with your AI assistant.
+
+### 🧠 Design Philosophy: `scan` vs `fix`
+* **`vexa scan`** is designed for Auditing and CI/CD pipelines. It automatically generates a `vexa_scan_reports/` directory containing JSON, HTML, and SARIF artifacts for compliance.
+* **`vexa fix`** is designed for a frictionless, interactive developer workflow. It prompts you in real-time and relies on Git to track file changes, deliberately avoiding generating report files to keep your workspace clean. (Use `--dry-run > fixes.patch` if you need a paper trail).
 
 ## 📦 Packages
 

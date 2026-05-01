@@ -16,4 +16,4 @@ try:
     __version__ = version("vexa-core")
 except (PackageNotFoundError, NameError, ImportError):
     # Fallback for development where the package is not installed
-    __version__ = "1.0.42"
+    __version__ = "1.0.55"

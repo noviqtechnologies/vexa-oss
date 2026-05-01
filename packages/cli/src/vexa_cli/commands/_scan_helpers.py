@@ -12,7 +12,78 @@ from pathlib import Path
 from typing import List, Optional
 
 from vexa.common.models import ScanMode, ScanResult, JobStatus
-from vexa.common.cloud_provider import CloudProvider
+from vexa.common.cloud_provider import CloudProvider, ProviderAvailability
+
+
+async def ensure_ai_availability(
+    cloud_provider: CloudProvider,
+    is_ci: bool,
+    is_non_interactive: bool,
+    console,
+) -> CloudProvider:
+    """
+    Ensure the AI provider is available, prompting for API keys if needed in interactive mode.
+    Returns the (possibly updated) CloudProvider.
+    """
+    if cloud_provider == CloudProvider.NONE:
+        return cloud_provider
+
+    status = await ProviderAvailability.check_provider(cloud_provider, check_quota=True)
+    if not status["available"]:
+        console.print(
+            f"\n[bold yellow]⚠ AI Provider '{cloud_provider.value}' not ready: {status['error']}[/bold yellow]"
+        )
+
+        # If interactive mode, offer to enter key
+        if not is_ci and not is_non_interactive:
+            key_var = {
+                CloudProvider.GOOGLE: "GOOGLE_API_KEY",
+                CloudProvider.OPENAI: "OPENAI_API_KEY",
+                CloudProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
+            }.get(cloud_provider)
+
+            if key_var and not os.environ.get(key_var):
+                from rich.prompt import Prompt
+
+                new_key = Prompt.ask(
+                    f"Enter your {cloud_provider.value.title()} API Key now",
+                    password=True,
+                )
+                if new_key:
+                    os.environ[key_var] = new_key
+                    # Re-check availability with the new key
+                    status = await ProviderAvailability.check_provider(
+                        cloud_provider, check_quota=True
+                    )
+                    if status["available"]:
+                        console.print(
+                            "[bold green]✔[/bold green] API Key accepted for this session."
+                        )
+
+        if not status["available"]:
+            from rich.prompt import Confirm
+
+            if is_ci or is_non_interactive:
+                console.print(
+                    "[bold yellow]⚠[/bold yellow] Non-interactive / CI environment detected. Automatically proceeding without AI enrichment."
+                )
+                return CloudProvider.NONE
+            elif Confirm.ask(
+                "Would you like to proceed without AI enrichment?",
+                default=False,
+                console=console,
+            ):
+                console.print("➜ Proceeding with AI capabilities disabled.")
+                return CloudProvider.NONE
+            else:
+                console.print(
+                    "[bold red]✖[/bold red] Aborted. Please configure the AI provider and try again."
+                )
+                import sys
+
+                sys.exit(0)
+
+    return cloud_provider
 
 
 def resolve_ai_provider(

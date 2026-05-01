@@ -193,6 +193,11 @@ async def _run_fix(
         logging.getLogger(logger_name).setLevel(logging.WARNING)
 
     path = path.resolve()
+    is_ci = os.environ.get("CI", "").lower() == "true"
+    ctx = click.get_current_context(silent=True)
+    is_non_interactive = (
+        ctx.obj.get("non_interactive", False) if ctx and ctx.obj else False
+    )
 
     # ── ZF-01 Zero-Friction Onboarding ─────────────────────────────────
     config_exists = (path / ".vexa.yml").exists() or (path / ".vexa.yaml").exists()
@@ -222,14 +227,15 @@ async def _run_fix(
     is_local_mode = cloud_provider == CloudProvider.OLLAMA
 
     # ── Check AI provider availability ─────────────────────────────────
-    if cloud_provider not in (CloudProvider.NONE, CloudProvider.OLLAMA):
-        status = await ProviderAvailability.check_provider(
-            cloud_provider, check_quota=False
-        )
-        if not status["available"]:
-            print_warning(f"AI provider not ready: {status['error']}")
-            print_info("Running scan without AI analysis. Fixes will be less accurate.")
-            cloud_provider = CloudProvider.NONE
+    from vexa_cli.commands._scan_helpers import (
+        run_scan_with_job_manager,
+        poll_scan_progress,
+        ensure_ai_availability,
+    )
+
+    cloud_provider = await ensure_ai_availability(
+        cloud_provider, is_ci, is_non_interactive, console
+    )
 
     if cloud_provider == CloudProvider.OLLAMA:
         # Verify Ollama is running before scanning
@@ -570,7 +576,7 @@ def _print_fix_header(
     capabilities=None,
 ):
     """Print the fix command header with professional configuration summary."""
-    print_banner(version=version, is_beta=True)
+    print_banner(version=version)
 
     start_time = datetime.now()
     console.print(
@@ -728,10 +734,21 @@ def _present_and_apply_fix(
     # Show the diff
     if before_code.strip() and after_code.strip():
         console.print("\n[bold]Here is the fix:[/bold]\n")
-        console.print(f"  [red]Before:[/red]   {before_code.strip().split(chr(10))[0]}")
-        console.print(
-            f"  [green]After:[/green]    {after_code.strip().split(chr(10))[0]}"
-        )
+        
+        diff_text = _generate_unified_diff(finding, workspace_path)
+        if diff_text:
+            # Skip file headers and @@ range markers
+            clean_lines = [
+                line for line in diff_text.splitlines()[2:] 
+                if not line.startswith("@@")
+            ]
+            clean_diff = "\n".join(clean_lines)
+            console.print(Syntax(clean_diff, "diff", theme="monokai", line_numbers=False))
+        else:
+            console.print("[red]Before:[/red]")
+            console.print(Syntax(before_code.strip()[:500], "python", theme="monokai", line_numbers=False))
+            console.print("\n[green]After:[/green]")
+            console.print(Syntax(after_code.strip()[:500], "python", theme="monokai", line_numbers=False))
 
         # Show implementation steps if available
         if finding.implementation_steps:
