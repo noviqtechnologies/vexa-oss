@@ -24,14 +24,15 @@ class AnthropicWrapper(SDKAIProvider):
 
     def __init__(self):
         super().__init__()
-        self._api_key = get_env("VEXA_ANTHROPIC_API_KEY", "")
+        self._api_key = get_env("VEXA_ANTHROPIC_API_KEY", "") or get_env("ANTHROPIC_API_KEY", "")
         self._model = get_env("VEXA_ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
 
     def _get_client(self):
         try:
             import anthropic
 
-            return anthropic.AsyncAnthropic(api_key=self._api_key)
+            api_key = self._api_key or get_env("VEXA_ANTHROPIC_API_KEY", "") or get_env("ANTHROPIC_API_KEY", "")
+            return anthropic.AsyncAnthropic(api_key=api_key)
         except ImportError:
             raise RuntimeError("anthropic SDK not installed")
 
@@ -59,8 +60,9 @@ class AnthropicWrapper(SDKAIProvider):
                 "Anthropic SDK not found (install with 'pip install anthropic')",
             )
 
-        if not self._api_key:
-            return AIProviderStatus.UNAVAILABLE, "VEXA_ANTHROPIC_API_KEY is not set"
+        api_key = self._api_key or get_env("VEXA_ANTHROPIC_API_KEY", "") or get_env("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return AIProviderStatus.UNAVAILABLE, "VEXA_ANTHROPIC_API_KEY or ANTHROPIC_API_KEY is not set"
 
         return AIProviderStatus.AVAILABLE, "Ready"
 

@@ -30,6 +30,7 @@ class BanditScanner(BaseScanner):
     """
 
     name = "bandit"
+    executable = "bandit"
     supported_modes = [ScanMode.LOCAL, ScanMode.CONTAINER]
 
     def get_command(

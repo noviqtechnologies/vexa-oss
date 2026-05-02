@@ -8,6 +8,7 @@ Eliminates duplication between scan.py and fix.py by centralizing:
 
 import asyncio
 import os
+import sys
 from pathlib import Path
 from typing import List, Optional
 
@@ -20,6 +21,7 @@ async def ensure_ai_availability(
     is_ci: bool,
     is_non_interactive: bool,
     console,
+    api_key: Optional[str] = None,
 ) -> CloudProvider:
     """
     Ensure the AI provider is available, prompting for API keys if needed in interactive mode.
@@ -27,6 +29,15 @@ async def ensure_ai_availability(
     """
     if cloud_provider == CloudProvider.NONE:
         return cloud_provider
+
+    if api_key:
+        key_var = {
+            CloudProvider.GOOGLE: "VEXA_GOOGLE_API_KEY",
+            CloudProvider.OPENAI: "VEXA_OPENAI_API_KEY",
+            CloudProvider.ANTHROPIC: "VEXA_ANTHROPIC_API_KEY",
+        }.get(cloud_provider)
+        if key_var:
+            os.environ[key_var] = api_key
 
     status = await ProviderAvailability.check_provider(cloud_provider, check_quota=True)
     if not status["available"]:
@@ -37,24 +48,50 @@ async def ensure_ai_availability(
         # If interactive mode, offer to enter key
         if not is_ci and not is_non_interactive:
             key_var = {
-                CloudProvider.GOOGLE: "GOOGLE_API_KEY",
-                CloudProvider.OPENAI: "OPENAI_API_KEY",
-                CloudProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
+                CloudProvider.GOOGLE: "VEXA_GOOGLE_API_KEY",
+                CloudProvider.OPENAI: "VEXA_OPENAI_API_KEY",
+                CloudProvider.ANTHROPIC: "VEXA_ANTHROPIC_API_KEY",
             }.get(cloud_provider)
 
-            if key_var and not os.environ.get(key_var):
+            # Determine which keys are valid for the selected provider
+            has_key = False
+            if key_var:
+                has_key = bool(os.environ.get(key_var))
+                # Support legacy/standard names as fallbacks
+                if not has_key:
+                    if cloud_provider == CloudProvider.GOOGLE:
+                        has_key = bool(os.environ.get("GOOGLE_API_KEY"))
+                    elif cloud_provider == CloudProvider.OPENAI:
+                        has_key = bool(os.environ.get("OPENAI_API_KEY"))
+                    elif cloud_provider == CloudProvider.ANTHROPIC:
+                        has_key = bool(os.environ.get("ANTHROPIC_API_KEY"))
+
+            if key_var and not has_key:
                 from rich.prompt import Prompt
 
                 new_key = Prompt.ask(
-                    f"Enter your {cloud_provider.value.title()} API Key now",
+                    f"Enter your {cloud_provider.value.capitalize()} API Key now",
                     password=True,
                 )
                 if new_key:
+                    new_key = new_key.strip().strip("'").strip('"')
                     os.environ[key_var] = new_key
-                    # Re-check availability with the new key
-                    status = await ProviderAvailability.check_provider(
-                        cloud_provider, check_quota=True
-                    )
+                    # Mirror to legacy/standard names for maximum compatibility
+                    if key_var == "VEXA_GOOGLE_API_KEY":
+                        os.environ["GOOGLE_API_KEY"] = new_key
+                    elif key_var == "VEXA_OPENAI_API_KEY":
+                        os.environ["OPENAI_API_KEY"] = new_key
+                    elif key_var == "VEXA_ANTHROPIC_API_KEY":
+                        os.environ["ANTHROPIC_API_KEY"] = new_key
+
+                    with console.status(f"[bold green]Validating {cloud_provider.value} API key..."):
+                        # Re-check availability with the new key
+                        status = await ProviderAvailability.check_provider(
+                            cloud_provider, check_quota=True
+                        )
+                    
+                    if not status["available"]:
+                        console.print(f"[bold red]✖[/bold red] Validation failed: [white]{status['error']}[/white]")
                     if status["available"]:
                         console.print(
                             "[bold green]✔[/bold green] API Key accepted for this session."
@@ -79,8 +116,12 @@ async def ensure_ai_availability(
                 console.print(
                     "[bold red]✖[/bold red] Aborted. Please configure the AI provider and try again."
                 )
-                import sys
-
+                if sys.platform == "win32":
+                    console.print(
+                        f"\n[dim]💡 Tip: On Windows PowerShell, set environment variables using:[/dim]\n"
+                        f"   [bold]$env:{key_var or 'API_KEY'}=\"your_key_here\"[/bold]\n"
+                        f"   [dim](Do not use just ${key_var or 'API_KEY'}=\"...\")[/dim]"
+                    )
                 sys.exit(0)
 
     return cloud_provider
@@ -103,11 +144,11 @@ def resolve_ai_provider(
         return config.ai.provider
 
     # Auto-detect from environment
-    if os.environ.get("GOOGLE_API_KEY"):
+    if os.environ.get("VEXA_GOOGLE_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
         return CloudProvider.GOOGLE
-    if os.environ.get("VEXA_ANTHROPIC_API_KEY"):
+    if os.environ.get("VEXA_ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"):
         return CloudProvider.ANTHROPIC
-    if os.environ.get("VEXA_OPENAI_API_KEY"):
+    if os.environ.get("VEXA_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY"):
         return CloudProvider.OPENAI
 
     return CloudProvider.NONE

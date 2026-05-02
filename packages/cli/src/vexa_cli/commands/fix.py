@@ -198,12 +198,31 @@ async def _run_fix(
     is_non_interactive = (
         ctx.obj.get("non_interactive", False) if ctx and ctx.obj else False
     )
+    api_key_override = (
+        ctx.obj.get("api_key") if ctx and ctx.obj else None
+    )
+
+    if api_key_override:
+        # Inject into environment so SDKs see it immediately
+        key_map = {
+            "google": "VEXA_GOOGLE_API_KEY",
+            "openai": "VEXA_OPENAI_API_KEY",
+            "anthropic": "VEXA_ANTHROPIC_API_KEY",
+        }
+        # We need to know the provider to know which key to set, 
+        # but we can just set them all to be safe if provider isn't resolved yet
+        # or wait until _resolve_ai_provider is called.
+        pass
 
     # ── ZF-01 Zero-Friction Onboarding ─────────────────────────────────
     config_exists = (path / ".vexa.yml").exists() or (path / ".vexa.yaml").exists()
     has_env_keys = any(
         os.environ.get(k)
-        for k in ["GOOGLE_API_KEY", "VEXA_ANTHROPIC_API_KEY", "VEXA_OPENAI_API_KEY"]
+        for k in [
+            "GOOGLE_API_KEY", "VEXA_GOOGLE_API_KEY", 
+            "OPENAI_API_KEY", "VEXA_OPENAI_API_KEY", 
+            "ANTHROPIC_API_KEY", "VEXA_ANTHROPIC_API_KEY"
+        ]
     )
 
     if not config_exists and not ai_provider_override and not has_env_keys:
@@ -234,7 +253,7 @@ async def _run_fix(
     )
 
     cloud_provider = await ensure_ai_availability(
-        cloud_provider, is_ci, is_non_interactive, console
+        cloud_provider, is_ci, is_non_interactive, console, api_key=api_key_override
     )
 
     if cloud_provider == CloudProvider.OLLAMA:
@@ -275,6 +294,7 @@ async def _run_fix(
         cloud_provider=cloud_provider,
         ai_provider_override=ai_provider_override,
         ai_model_override=ai_model_override,
+        api_key_override=api_key_override,
         min_severity=severity,
     )
 

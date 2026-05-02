@@ -30,6 +30,7 @@ class DetectSecretsScanner(BaseScanner):
     """
 
     name = "detect-secrets"
+    executable = "detect-secrets"
     supported_modes = [ScanMode.LOCAL, ScanMode.CONTAINER]
 
     def get_command(

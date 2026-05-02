@@ -1,0 +1,36 @@
+# Vexa CI/CD — Local Testing
+#
+# Usage (with pre-built image):
+#   cd /path/to/your/project
+#   docker compose -f /path/to/vexa/packages/cicd/docker-compose.yml up
+#
+# Usage (build from source):
+#   cd /path/to/vexa-oss
+#   docker compose -f packages/cicd/docker-compose.yml --profile build up
+#
+
+services:
+  vexa:
+    image: ghcr.io/noviqtechnologies/vexa:latest
+    volumes:
+      - .:/workspace:ro
+    working_dir: /workspace
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - VEXA_OPENAI_API_KEY=${VEXA_OPENAI_API_KEY:-}
+      - VEXA_ANTHROPIC_API_KEY=${VEXA_ANTHROPIC_API_KEY:-}
+    command: ["scan", "/workspace", "--format", "sarif,json,html,markdown", "--output", "/workspace/vexa_reports"]
+
+  vexa-local:
+    profiles: ["build"]
+    build:
+      context: ../..
+      dockerfile: packages/cicd/Dockerfile
+    volumes:
+      - .:/workspace:ro
+    working_dir: /workspace
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - VEXA_OPENAI_API_KEY=${VEXA_OPENAI_API_KEY:-}
+      - VEXA_ANTHROPIC_API_KEY=${VEXA_ANTHROPIC_API_KEY:-}
+    command: ["scan", "/workspace", "--format", "sarif,json,html,markdown", "--output", "/workspace/vexa_reports"]

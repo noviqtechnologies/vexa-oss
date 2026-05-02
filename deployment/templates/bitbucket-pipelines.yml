@@ -1,0 +1,63 @@
+# Vexa - Bitbucket Pipelines Template
+# Copy this to your repository root as `bitbucket-pipelines.yml`
+#
+# Required repository variables (Settings > Repository variables):
+#   GOOGLE_API_KEY (optional) - For AI enrichment
+#
+# The pipeline uses the official Vexa Docker image,
+# so no Python or pip installation is needed.
+
+image: ghcr.io/noviqtechnologies/vexa:latest
+
+pipelines:
+  default:
+    - step:
+        name: Vexa Security Scan
+        script:
+          - >
+            vexa scan . 
+            --format sarif,html,json,markdown
+            --output vexa_reports
+            --ai-provider ${VEXA_AI_PROVIDER:-none}
+            --fail-on critical,high
+            || export GATE_FAILED=true
+          - |
+            if [ "$GATE_FAILED" = "true" ]; then
+              echo "❌ Quality Gate Failed: Critical/High findings detected"
+              exit 1
+            fi
+        artifacts:
+          - vexa_reports/**
+
+  pull-requests:
+    '**':
+      - step:
+          name: Vexa PR Security Gate
+          script:
+            - >
+              vexa scan .
+              --format sarif,html,json,markdown
+              --output vexa_reports
+              --ai-provider ${VEXA_AI_PROVIDER:-none}
+              --fail-on critical,high
+              || export GATE_FAILED=true
+            - |
+              if [ "$GATE_FAILED" = "true" ]; then
+                echo "❌ Quality Gate Failed: Critical/High findings detected"
+                exit 1
+              fi
+          artifacts:
+            - vexa_reports/**
+
+  custom:
+    weekly-scan:
+      - step:
+          name: Weekly Full Security Audit
+          script:
+            - >
+              vexa scan .
+              --format sarif,html,json,markdown
+              --output vexa_reports
+              --ai-provider ${VEXA_AI_PROVIDER:-none}
+          artifacts:
+            - vexa_reports/**

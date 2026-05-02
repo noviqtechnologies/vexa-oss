@@ -32,6 +32,9 @@ class ScanMode(str, Enum):
 
     LOCAL = "local"
     CONTAINER = "container"
+    FAST = "fast"
+    BALANCED = "balanced"
+    DEEP = "deep"
 
 
 class JobStatus(str, Enum):

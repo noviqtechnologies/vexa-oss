@@ -60,12 +60,31 @@ Vexa can generate code fixes for discovered vulnerabilities.
 
 ### Using Cloud Providers
 
-Set your API key as an environment variable:
+Vexa supports Gemini, OpenAI, and Anthropic. You can configure authentication in several ways:
 
-```bash
-export GOOGLE_API_KEY="your-key"
-vexa fix . --ai-provider google
-```
+1. **Global Flag (Foolproof)**:
+   ```bash
+   vexa --api-key "your-key" fix . --ai-provider google
+   ```
+
+2. **Environment Variables**:
+   Vexa supports standard variables: `GOOGLE_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`.
+   ```bash
+   export GOOGLE_API_KEY="your-key"
+   vexa fix . --ai-provider google
+   ```
+
+3. **.env File**:
+   Create a `.env` file in your project root. Vexa will automatically load it.
+   ```text
+   GOOGLE_API_KEY=your-key
+   ```
+
+4. **Verify Connectivity**:
+   Use the targeted doctor command to test your connection:
+   ```bash
+   vexa doctor --ai-provider google
+   ```
 
 ## Next Steps
 

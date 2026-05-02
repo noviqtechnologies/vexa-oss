@@ -30,6 +30,7 @@ class GrypeScanner(BaseScanner):
     """
 
     name = "grype"
+    executable = "grype"
     supported_modes = [ScanMode.LOCAL, ScanMode.CONTAINER]
 
     def get_command(

@@ -30,6 +30,7 @@ class CheckovScanner(BaseScanner):
     """
 
     name = "checkov"
+    executable = "checkov"
     supported_modes = [ScanMode.LOCAL, ScanMode.CONTAINER]
     timeout_multiplier = 2.0
 

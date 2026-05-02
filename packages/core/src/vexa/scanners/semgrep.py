@@ -30,6 +30,7 @@ class SemgrepScanner(BaseScanner):
     """
 
     name = "semgrep"
+    executable = "semgrep"
     supported_modes = [ScanMode.LOCAL, ScanMode.CONTAINER]
 
     def get_command(

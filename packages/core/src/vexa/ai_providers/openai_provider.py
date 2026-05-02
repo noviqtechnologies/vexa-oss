@@ -30,14 +30,15 @@ class OpenAIWrapper(SDKAIProvider):
 
     def __init__(self):
         super().__init__()
-        self._api_key = get_env("VEXA_OPENAI_API_KEY", "")
+        self._api_key = get_env("VEXA_OPENAI_API_KEY", "") or get_env("OPENAI_API_KEY", "")
         self._model = get_env("VEXA_OPENAI_MODEL", "gpt-4o-mini")
 
     def _get_client(self):
         try:
             import openai
 
-            return openai.AsyncOpenAI(api_key=self._api_key)
+            api_key = self._api_key or get_env("VEXA_OPENAI_API_KEY", "") or get_env("OPENAI_API_KEY", "")
+            return openai.AsyncOpenAI(api_key=api_key)
         except ImportError:
             raise RuntimeError("openai SDK not installed")
 
@@ -65,8 +66,9 @@ class OpenAIWrapper(SDKAIProvider):
                 "OpenAI SDK not found (install with 'pip install openai')",
             )
 
-        if not self._api_key:
-            return AIProviderStatus.UNAVAILABLE, "VEXA_OPENAI_API_KEY is not set"
+        api_key = self._api_key or get_env("VEXA_OPENAI_API_KEY", "") or get_env("OPENAI_API_KEY", "")
+        if not api_key:
+            return AIProviderStatus.UNAVAILABLE, "VEXA_OPENAI_API_KEY or OPENAI_API_KEY is not set"
 
         return AIProviderStatus.AVAILABLE, "Ready"
 

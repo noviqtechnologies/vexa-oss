@@ -41,28 +41,22 @@ from vexa_cli.gates.quality_gate import evaluate_quality_gate
 
 import importlib.metadata
 
-QualityGateEvaluator = None
-SecurityScorer = None
-BaselineManager = None
-ComplianceAnalyzer = None
-ShadowDecorator = None
-
 try:
-    eps = importlib.metadata.entry_points(group="vexa.plugins.cicd")
-    for ep in eps:
-        cls = ep.load()
-        if ep.name == "QualityGateEvaluator":
-            QualityGateEvaluator = cls
-        elif ep.name == "SecurityScorer":
-            SecurityScorer = cls
-        elif ep.name == "BaselineManager":
-            BaselineManager = cls
-        elif ep.name == "ComplianceAnalyzer":
-            ComplianceAnalyzer = cls
-        elif ep.name == "ShadowDecorator":
-            ShadowDecorator = cls
-except Exception:
-    pass
+    from vexa.cicd.quality_gate import QualityGateEvaluator
+    from vexa.cicd.security_score import SecurityScorer
+    from vexa.cicd.baseline import BaselineManager
+    from vexa.cicd.compliance import ComplianceAnalyzer
+    from vexa.cicd.shadow_decorator import ShadowDecorator
+    from vexa.cicd.pr_decorator import PRDecorator
+except ImportError:
+    # This should no longer happen in the unified architecture, 
+    # but kept as a fallback to prevent total breakage if core is missing modules.
+    QualityGateEvaluator = None
+    SecurityScorer = None
+    BaselineManager = None
+    ComplianceAnalyzer = None
+    ShadowDecorator = None
+    PRDecorator = None
 
 
 @click.command()
@@ -290,6 +284,9 @@ def scan(
         ctx.obj.get("non_interactive", False) if ctx and ctx.obj else False
     )
     is_ci = os.environ.get("CI", "").lower() == "true"
+    api_key_override = (
+        ctx.obj.get("api_key") if ctx and ctx.obj else ai_api_key
+    )
 
     if pre_commit:
         print_info("Pre-commit mode enabled. Disabling AI features for speed.")
@@ -335,7 +332,9 @@ def scan(
         from vexa_cli.commands._scan_helpers import ensure_ai_availability
 
         cloud_provider = asyncio.run(
-            ensure_ai_availability(cloud_provider, is_ci, is_non_interactive, console)
+            ensure_ai_availability(
+                cloud_provider, is_ci, is_non_interactive, console, api_key=api_key_override
+            )
         )
 
     formats_to_gen = list(format)
@@ -353,9 +352,7 @@ def scan(
         "none": "None",
     }
     effective_ai_display = (
-        display_map.get(ai_provider.lower(), ai_provider.upper())
-        if ai_provider
-        else display_map.get(cloud_provider.value.lower(), "None")
+        display_map.get(cloud_provider.value.lower(), "None")
         if cloud_provider != CloudProvider.NONE
         else "None"
     )
@@ -394,7 +391,7 @@ def scan(
                 timeout,
                 cloud_provider,
                 ai_provider_override=ai_provider,
-                api_key_override=ai_api_key,
+                api_key_override=api_key_override,
                 ai_min_severity=ai_min_severity,
                 cli_excludes=cli_excludes,
                 incremental=incremental,

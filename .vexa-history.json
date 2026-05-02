@@ -1,0 +1,42 @@
+[
+  {
+    "timestamp": "2026-05-02T12:55:37.973502",
+    "job_id": "a859dbe5-b1c5-4aa2-8c3d-6121119803b2",
+    "total": 21,
+    "critical": 0,
+    "high": 0,
+    "medium": 4,
+    "low": 17,
+    "score": 83.5
+  },
+  {
+    "timestamp": "2026-05-02T12:56:21.192043",
+    "job_id": "f8b06a8b-c03f-4894-bae3-43ca5b246dc0",
+    "total": 21,
+    "critical": 0,
+    "high": 0,
+    "medium": 4,
+    "low": 17,
+    "score": 83.5
+  },
+  {
+    "timestamp": "2026-05-02T12:56:50.786932",
+    "job_id": "0777822e-1227-4bfd-a0cd-9b0461be2a95",
+    "total": 21,
+    "critical": 0,
+    "high": 0,
+    "medium": 4,
+    "low": 17,
+    "score": 83.5
+  },
+  {
+    "timestamp": "2026-05-02T12:57:09.060758",
+    "job_id": "28f2e547-74b6-47ae-9c3b-dd48516a91d7",
+    "total": 21,
+    "critical": 0,
+    "high": 0,
+    "medium": 4,
+    "low": 17,
+    "score": 83.5
+  }
+]

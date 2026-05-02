@@ -21,6 +21,14 @@ Vexa orchestrates Bandit, Semgrep, Checkov, detect-secrets, npm-audit, pip-audit
 
 ## 🚀 Quick Start
 
+### Docker (CI/CD — Recommended)
+
+Run Vexa in any CI/CD pipeline with zero setup — all packages pre-installed:
+
+```bash
+docker run --rm -v $(pwd):/workspace ghcr.io/noviqtechnologies/vexa:latest scan /workspace
+```
+
 ### Install from PyPI (Stable)
 
 Once published, you can install the latest stable version:
@@ -99,11 +107,20 @@ uv run vexa fix . --ai-provider ollama
 ## 🔒 Privacy Modes
 
 Your code is your business. Vexa gives you full control:
-
 1. **Privacy Vault (Local):** Run 100% locally with Ollama. No code snippets or metadata leave your machine. Ever.
    > **Note:** The default model (`gemma4:26b`) requires ~18-32GB of RAM. If you hit out-of-memory errors, configure a smaller model (like `llama3:8b`) in your `.vexa.yml` file. See [QUICKSTART.md](docs/QUICKSTART.md) for setup instructions.
-2. **Cloud AI:** Use Gemini, OpenAI, or Anthropic for analysis. Code snippets are sent to the AI provider you choose.
+2. **Cloud AI:** Use Gemini, OpenAI, or Anthropic. Vexa supports standard industry environment variables (e.g., `OPENAI_API_KEY`) and automatic `.env` file discovery.
 3. **No AI:** Run scanners only. Zero network calls.
+
+### 🔑 Authentication
+Vexa makes AI configuration zero-friction:
+* **Automatic Discovery**: Vexa automatically loads `.env` files from your project root and home directory.
+* **Standard Variables**: Use existing keys like `GOOGLE_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`.
+* **Direct Injection**: Use the global `--api-key` flag to bypass environment setup:
+  ```bash
+  vexa --api-key "sk-..." fix . --ai-provider openai
+  ```
+* **Diagnostic Tools**: Verify your AI setup with `vexa doctor --ai-provider google`.
 
 ## 🧩 Integrations
 
@@ -111,9 +128,27 @@ Your code is your business. Vexa gives you full control:
 
 Coming soon!
 
-### CI/CD (GitHub Actions)
+### CI/CD (GitHub, GitLab, Azure, Jenkins, Bitbucket)
 
-Coming soon!
+Vexa provides a **universal Docker image** that runs on any CI/CD platform — no Python or pip needed on the runner.
+
+```bash
+# Works on any platform that supports Docker
+docker run --rm -v $(pwd):/workspace ghcr.io/noviqtechnologies/vexa:latest \
+  scan /workspace --fail-on critical,high
+```
+
+**Platform-specific quick start:**
+
+| Platform | Config File | Key Line |
+|:---|:---|:---|
+| GitHub Actions | `.github/workflows/vexa.yml` | `container: { image: ghcr.io/noviqtechnologies/vexa:latest }` |
+| GitLab CI | `.gitlab-ci.yml` | `image: ghcr.io/noviqtechnologies/vexa:latest` |
+| Azure Pipelines | `azure-pipelines.yml` | `container: { image: ghcr.io/noviqtechnologies/vexa:latest }` |
+| Jenkins | `Jenkinsfile` | `docker { image 'ghcr.io/noviqtechnologies/vexa:latest' }` |
+| Bitbucket | `bitbucket-pipelines.yml` | `image: ghcr.io/noviqtechnologies/vexa:latest` |
+
+📄 See the [CI/CD guide](deployment/README.md) for full copy-paste templates and configuration options.
 
 ### MCP Protocol (Claude, Cursor, Antigravity)
 
@@ -154,11 +189,11 @@ If you are running Vexa from source, you MUST bypass terminal wrappers (like `cm
 
 ## 📦 Packages
 
-| Package | Description |
-|:---|:---|
-| `vexa-core` | Scanner engine, AI providers, reports, deduplication |
-| `vexa-cli` | Command-line interface (Click + Rich) |
-| `vexa-mcp` | MCP server for IDE integration (FastMCP) |
+| Package | Description | Install |
+|:---|:---|:---|
+| `vexa-core` | Scanner engine, AI fixes, and CI/CD automation | `pip install vexa-core` |
+| `vexa-cli` | Command-line interface (Click + Rich) | `pip install vexa-cli` |
+| `vexa-mcp` | MCP server for IDE integration (FastMCP) | `pip install vexa-mcp` |
 
 ## 💬 Community
 

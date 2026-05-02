@@ -1,0 +1,56 @@
+# Vexa - GitLab CI Pipeline Template
+# Include in your .gitlab-ci.yml:
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/noviqtechnologies/vexa/main/packages/cicd/templates/gitlab-ci.yml'
+#
+# Required variables (set in GitLab CI/CD Settings > Variables):
+#   GOOGLE_API_KEY (optional) - For AI enrichment
+
+stages:
+  - test
+
+vexa-scan:
+  image: ghcr.io/noviqtechnologies/vexa:latest
+  stage: test
+  variables:
+    GOOGLE_API_KEY: $GOOGLE_API_KEY
+    VEXA_AI_PROVIDER: "none"
+  script:
+    - |
+      vexa scan . \
+        --format sarif,html,json,markdown \
+        --output vexa_reports \
+        --ai-provider ${VEXA_AI_PROVIDER} \
+        --fail-on critical,high \
+        || GATE_FAILED=true
+
+    # Post MR comment if in merge request pipeline
+    - |
+      if [ -n "$CI_MERGE_REQUEST_IID" ] && [ -f vexa_reports/*/report_*.md ]; then
+        REPORT_FILE=$(ls vexa_reports/*/report_*.md | head -1)
+        BODY=$(cat "$REPORT_FILE" | head -200)
+        curl --request POST \
+          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          --header "Content-Type: application/json" \
+          --data "{\"body\": $(echo "$BODY" | jq -Rs .)}" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes" \
+          || true
+      fi
+
+    # Enforce quality gate
+    - |
+      if [ "$GATE_FAILED" = "true" ]; then
+        echo "❌ Quality Gate Failed"
+        exit 1
+      fi
+  artifacts:
+    paths:
+      - vexa_reports/
+    reports:
+      sast: vexa_reports/**/report_*.sarif
+    expire_in: 30 days
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_PIPELINE_SOURCE == "schedule"

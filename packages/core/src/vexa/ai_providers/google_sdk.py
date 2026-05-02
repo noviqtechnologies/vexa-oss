@@ -50,7 +50,7 @@ class GeminiSDKWrapper(SDKAIProvider):
 
     def __init__(self):
         super().__init__()
-        self._api_key = get_env("GOOGLE_API_KEY", "")
+        self._api_key = get_env("VEXA_GOOGLE_API_KEY", "") or get_env("GOOGLE_API_KEY", "")
         self._model = get_env("GOOGLE_GEMINI_MODEL", "gemini-3.1-pro-preview")
 
     def _get_client(self):
@@ -71,7 +71,8 @@ class GeminiSDKWrapper(SDKAIProvider):
                 "httpx_client": httpx.Client(),
             }
 
-        return genai.Client(api_key=self._api_key, **kwargs)
+        api_key = self._api_key or get_env("VEXA_GOOGLE_API_KEY", "") or get_env("GOOGLE_API_KEY", "")
+        return genai.Client(api_key=api_key, **kwargs)
 
     def set_api_key(self, api_key: str) -> None:
         self._api_key = api_key
@@ -113,10 +114,11 @@ class GeminiSDKWrapper(SDKAIProvider):
                 )
             raise e
 
-        if not self._api_key:
+        api_key = self._api_key or get_env("VEXA_GOOGLE_API_KEY", "") or get_env("GOOGLE_API_KEY", "")
+        if not api_key:
             return (
                 AIProviderStatus.UNAVAILABLE,
-                "GOOGLE_API_KEY environment variable is not set. "
+                "GOOGLE_API_KEY or VEXA_GOOGLE_API_KEY environment variable is not set. "
                 "Get a key at https://aistudio.google.com/app/apikey",
             )
 

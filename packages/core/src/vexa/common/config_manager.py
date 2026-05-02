@@ -69,6 +69,10 @@ class ReportsConfig(BaseModel):
         default=["sarif", "html", "json", "markdown"],
         description="Report formats to generate",
     )
+    output_dir: str = Field(
+        default="vexa_scan_reports",
+        description="Directory where reports will be saved",
+    )
 
 
 class GuardrailsConfig(BaseModel):
@@ -100,6 +104,12 @@ def load_config(directory: Path | str) -> VexaConfig:
     If not found, return the default code configuration.
     """
     directory = Path(directory).resolve()
+    
+    # Load .env from the project directory if it exists
+    from dotenv import load_dotenv
+    env_path = directory / ".env"
+    if env_path.is_file():
+        load_dotenv(env_path)
 
     # Simple search upward up to 5 directories to find a config
     current_dir = directory

@@ -136,6 +136,7 @@ class BaseScanner(ABC):
 
     # Subclasses must set these
     name: str = "base"
+    executable: str = ""  # The binary name to check for availability
     supported_modes: List[ScanMode] = [ScanMode.LOCAL, ScanMode.CONTAINER]
 
     # Default timeout in seconds
@@ -199,11 +200,16 @@ class BaseScanner(ABC):
             True if scanner executable is found in PATH, available via python -m,
             or present in the current Python's bin/Scripts directory.
         """
-        cmd = self.get_command(Path("."))
-        if not cmd:
-            return False
-
-        executable = cmd[0]
+        if self.executable:
+            executable = self.executable
+        else:
+            cmd = self.get_command(Path("."))
+            if not cmd:
+                # If command can't be built (e.g. missing requirements.txt),
+                # fallback to checking if the scanner name itself is an executable
+                executable = self.name
+            else:
+                executable = cmd[0]
 
         # 1. Check if executable exists in system PATH
         if shutil.which(executable):

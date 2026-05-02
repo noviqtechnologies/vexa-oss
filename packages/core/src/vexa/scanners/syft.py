@@ -33,6 +33,7 @@ class SyftScanner(BaseScanner):
     """
 
     name = "syft"
+    executable = "syft"
     supported_modes = [ScanMode.LOCAL, ScanMode.CONTAINER]
 
     def get_command(

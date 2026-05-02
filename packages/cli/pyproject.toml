@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vexa-cli"
-version = "1.0.55"
+version = "1.0.56"
 description = "VEXA Command Line Interface — air-gapped security scanning with AI fixes"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -26,11 +26,12 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://usevexa.dev"
+Homepage = "https://vexasec.io"
 Repository = "https://github.com/noviqtechnologies/vexa-oss"
 
 [project.scripts]
 vexa = "vexa_cli.main:main_entry"
+vexa-cicd-run = "vexa.cicd.runner:CICDRunner.run_sync"
 
 [tool.setuptools.packages.find]
 where = ["src"]

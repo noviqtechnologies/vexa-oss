@@ -1,0 +1,77 @@
+// Vexa - Jenkins Pipeline Template
+// Copy this file to your repository root as `Jenkinsfile`
+//
+// Prerequisites:
+//   - Docker installed on Jenkins agent
+//   - Optional: GOOGLE_API_KEY credential for AI enrichment
+//
+// Usage:
+//   The pipeline runs the Vexa Docker image directly,
+//   so no Python or pip installation is needed on the agent.
+
+pipeline {
+    agent any
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        timestamps()
+    }
+
+    triggers {
+        // Run weekly on Monday at 6AM
+        cron('H 6 * * 1')
+    }
+
+    environment {
+        VEXA_AI_PROVIDER = 'none'
+    }
+
+    stages {
+        stage('Vexa Security Scan') {
+            agent {
+                docker {
+                    image 'ghcr.io/noviqtechnologies/vexa:latest'
+                    args '-v ${WORKSPACE}:/workspace'
+                }
+            }
+            steps {
+                script {
+                    def exitCode = sh(
+                        script: '''
+                            vexa scan /workspace \
+                                --format sarif,html,json,markdown \
+                                --output /workspace/vexa_reports \
+                                --ai-provider ${VEXA_AI_PROVIDER} \
+                                --fail-on critical,high
+                        ''',
+                        returnStatus: true
+                    )
+                    env.GATE_FAILED = (exitCode != 0) ? 'true' : 'false'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Archive reports
+            archiveArtifacts artifacts: 'vexa_reports/**/*', allowEmptyArchive: true
+
+            // Publish HTML report if available
+            publishHTML(target: [
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'vexa_reports',
+                reportFiles: '**/report_*.html',
+                reportName: 'Vexa Security Report'
+            ])
+        }
+        failure {
+            echo '❌ Quality Gate Failed: Critical/High findings detected'
+        }
+        success {
+            echo '✅ Vexa Security Gate Passed'
+        }
+    }
+}

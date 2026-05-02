@@ -4,14 +4,32 @@ import sys
 import platform
 import click
 from pathlib import Path
+from typing import Optional
 
 from vexa_cli.ui.output import print_banner, console
 
 
 @click.command()
 @click.option("--privacy", is_flag=True, help="Verify local AI privacy audit log.")
-def doctor(privacy: bool):
+@click.option(
+    "--ai-provider",
+    type=click.Choice(
+        ["google", "openai", "anthropic", "ollama", "none"], case_sensitive=False
+    ),
+    help="Target AI provider to diagnose.",
+)
+def doctor(privacy: bool, ai_provider: Optional[str]):
     """Diagnostic command to check installation and environment."""
+    import asyncio
+
+    try:
+        asyncio.run(_run_doctor(privacy, ai_provider))
+    except Exception as e:
+        console.print(f"[bold red]✖[/bold red] Diagnostic failed: {e}")
+
+
+async def _run_doctor(privacy: bool, ai_provider_override: Optional[str] = None):
+    """Internal async doctor implementation."""
     print_banner()
 
     if privacy:
@@ -58,40 +76,65 @@ def doctor(privacy: bool):
     console.print("[bold white]🤖 AI Providers[/bold white]")
     try:
         from vexa.common.config_manager import load_config
-
-        # Standardize provider discovery
         from vexa.common.models import CloudProvider
+        from vexa.common.cloud_provider import ProviderAvailability, PROVIDER_CAPABILITIES
         import os
 
+        # Load project-local config
         config = load_config(Path("."))
-        prov_name = config.ai.provider
 
-        # Override via env for current session
-        if "VEXA_AI_PROVIDER" in os.environ:
+        # Inject global API key if provided
+        ctx = click.get_current_context(silent=True)
+        api_key = ctx.obj.get("api_key") if ctx and ctx.obj else None
+        if api_key and ai_provider_override:
+            # Note: We only know which key to set if we know the provider
+            key_map = {
+                "google": "VEXA_GOOGLE_API_KEY",
+                "openai": "VEXA_OPENAI_API_KEY",
+                "anthropic": "VEXA_ANTHROPIC_API_KEY",
+            }
+            key_var = key_map.get(ai_provider_override.lower())
+            if key_var:
+                os.environ[key_var] = api_key
+        
+        # Determine the effective provider to test
+        target_provider = CloudProvider.NONE
+        if ai_provider_override:
+            target_provider = CloudProvider(ai_provider_override.lower())
+        elif "VEXA_AI_PROVIDER" in os.environ:
             try:
-                prov_name = CloudProvider(os.environ["VEXA_AI_PROVIDER"].lower())
+                target_provider = CloudProvider(os.environ["VEXA_AI_PROVIDER"].lower())
             except ValueError:
                 pass
+        elif config.ai.enabled:
+            target_provider = config.ai.provider
 
-        if prov_name and prov_name != CloudProvider.NONE:
-            from vexa.common.cloud_provider import PROVIDER_CAPABILITIES
-
-            caps = PROVIDER_CAPABILITIES.get(prov_name)
-            console.print(
-                f"  [bold green]✔[/bold green] [white]Provider:[/white]        [dim]{prov_name.value}[/dim]"
-            )
-            if caps:
-                console.print(
-                    f"  [bold green]✔[/bold green] [white]Capabilities:[/white]    [dim]Code Review: {'yes' if caps.code_review_enabled else 'no'} | FP Detection: {'yes' if caps.false_positive_detection else 'no'}[/dim]"
-                )
+        if target_provider and target_provider != CloudProvider.NONE:
+            status_data = await ProviderAvailability.check_provider(target_provider, check_quota=True)
+            
+            if status_data["available"]:
+                console.print(f"  [bold green]✔[/bold green] [white]Provider:[/white]        [dim]{target_provider.value} (Authenticated)[/dim]")
+                caps = PROVIDER_CAPABILITIES.get(target_provider)
+                if caps:
+                    console.print(f"  [bold green]✔[/bold green] [white]Capabilities:[/white]    [dim]Code Review: {'yes' if caps.code_review_enabled else 'no'} | FP Detection: {'yes' if caps.false_positive_detection else 'no'}[/dim]")
+            else:
+                console.print(f"  [bold red]✖[/bold red] [white]Provider:[/white]        [red]{target_provider.value} (Failed)[/red]")
+                console.print(f"    [dim]Error: {status_data['error']}[/dim]")
+                
+                # Help with common env var issues
+                if "API_KEY" in str(status_data["error"]).upper():
+                    key_map = {
+                        CloudProvider.GOOGLE: "VEXA_GOOGLE_API_KEY",
+                        CloudProvider.OPENAI: "VEXA_OPENAI_API_KEY",
+                        CloudProvider.ANTHROPIC: "VEXA_ANTHROPIC_API_KEY",
+                    }
+                    key_var = key_map.get(target_provider)
+                    if key_var:
+                        console.print(f"    [bold yellow]💡 Hint:[/bold yellow] [dim]Ensure {key_var} is set in your environment or a .env file.[/dim]")
         else:
-            console.print(
-                "  [bold yellow]⬚[/bold yellow] [white]No AI configured[/white] [dim](run 'vexa login')[/dim]"
-            )
+            console.print("  [bold yellow]⬚[/bold yellow] [white]No AI configured[/white] [dim](AI features will be disabled)[/dim]")
     except Exception as e:
-        console.print(
-            f"  [bold red]✖[/bold red] [white]Error loading AI:[/white] [dim]{e}[/dim]"
-        )
+        console.print(f"  [bold red]✖[/bold red] [white]Error diagnosing AI:[/white] [dim]{e}[/dim]")
 
     console.print("─" * 50)
     console.print("[bold green]Diagnostic complete.[/bold green]\\n")

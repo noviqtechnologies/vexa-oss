@@ -1,0 +1,434 @@
+{
+  "version": "1.0",
+  "job_id": "scan_54647de73c71",
+  "total_findings": 21,
+  "score": "B",
+  "findings": [
+    {
+      "id": "77e5c91ae570",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "blacklist",
+      "description": "Consider possible security implications associated with the subprocess module.",
+      "file_path": "./packages/cli/src/vexa_cli/commands/init.py",
+      "line_start": 4,
+      "line_end": 6,
+      "code_snippet": "import sys\nimport subprocess\nimport yaml",
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1059-Command and Scripting Interpreter",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "81f166339a13",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "start_process_with_partial_path",
+      "description": "Starting a process with a partial executable path",
+      "file_path": "./packages/cli/src/vexa_cli/commands/init.py",
+      "line_start": 105,
+      "line_end": 111,
+      "code_snippet": "try:\nsubprocess.check_call(\n[\"pipx\", \"--version\"],\nstdout=subprocess.DEVNULL,\nstderr=subprocess.DEVNULL,\n)\nuse_pipx = True",
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1059-Command and Scripting Interpreter",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "386b32160211",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "subprocess_without_shell_equals_true",
+      "description": "subprocess call - check for execution of untrusted input.",
+      "file_path": "./packages/cli/src/vexa_cli/commands/init.py",
+      "line_start": 126,
+      "line_end": 141,
+      "code_snippet": "if scanner == \"semgrep\":\nsubprocess.check_call(\n[\nsys.executable,\n\"-m\",\n\"pip\",\n\"install\",\n\"rich>=13.5.2,<13.6.0\",\n\"tomli>=2.0.1,<2.1.0\",\n\"--user\",\n\"--quiet\",\n],\nstdout=subprocess.DEVNULL,\nstderr=subprocess.DEVNULL,\n)\n",
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1059-Command and Scripting Interpreter",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "6f4929a55425",
+      "scanner": "bandit",
+      "severity": "medium",
+      "title": "set_bad_file_permissions",
+      "description": "Chmod setting a permissive mask 0o755 on file (hook_path).",
+      "file_path": "./packages/cli/src/vexa_cli/commands/init.py",
+      "line_start": 372,
+      "line_end": 374,
+      "code_snippet": "hook_path.write_text(hook_script.replace(\"\\r\\n\", \"\\n\"))\nos.chmod(hook_path, 0o755)\nprint_success(\"Pre-commit guardrails updated.\")",
+      "cwe_ids": [
+        "CWE-732"
+      ],
+      "owasp_category": "A01:2021-Broken Access Control",
+      "mitre_attack_id": null,
+      "nist_controls": [
+        "AC-3",
+        "AC-6"
+      ]
+    },
+    {
+      "id": "510190d5a3c5",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "try_except_pass",
+      "description": "Try, Except, Pass detected.",
+      "file_path": "./packages/core/src/vexa/ai_providers/manager.py",
+      "line_start": 151,
+      "line_end": 154,
+      "code_snippet": "port = parsed.port or port\nexcept Exception:\npass\n",
+      "cwe_ids": [
+        "CWE-703",
+        "CWE-89"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1190-Exploit Public-Facing Application",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "d7540ead3f29",
+      "scanner": "bandit",
+      "severity": "medium",
+      "title": "blacklist",
+      "description": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+      "file_path": "./packages/core/src/vexa/ai_providers/ollama_provider.py",
+      "line_start": 162,
+      "line_end": 164,
+      "code_snippet": ")\nresponse = urllib.request.urlopen(req, timeout=5)\ndata = json.loads(response.read().decode(\"utf-8\"))",
+      "cwe_ids": [
+        "CWE-22"
+      ],
+      "owasp_category": "A01:2021-Broken Access Control",
+      "mitre_attack_id": "T1083-File and Directory Discovery",
+      "nist_controls": [
+        "AC-3",
+        "AC-6"
+      ]
+    },
+    {
+      "id": "8c1ad1e45f14",
+      "scanner": "bandit",
+      "severity": "medium",
+      "title": "blacklist",
+      "description": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+      "file_path": "./packages/core/src/vexa/ai_providers/ollama_provider.py",
+      "line_start": 262,
+      "line_end": 264,
+      "code_snippet": "response = await loop.run_in_executor(\nNone, lambda: urllib.request.urlopen(req, timeout=300)\n)",
+      "cwe_ids": [
+        "CWE-22"
+      ],
+      "owasp_category": "A01:2021-Broken Access Control",
+      "mitre_attack_id": "T1083-File and Directory Discovery",
+      "nist_controls": [
+        "AC-3",
+        "AC-6"
+      ]
+    },
+    {
+      "id": "7cf1ab07d150",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "try_except_pass",
+      "description": "Try, Except, Pass detected.",
+      "file_path": "./packages/core/src/vexa/ai_providers/ollama_provider.py",
+      "line_start": 272,
+      "line_end": 275,
+      "code_snippet": "raise RuntimeError(f\"Ollama reported an error: {error_json['error']}\")\nexcept Exception:\npass\nraise RuntimeError(f\"Local AI request failed: HTTP Error {e.code}: {e.reason}\")",
+      "cwe_ids": [
+        "CWE-703",
+        "CWE-89"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1190-Exploit Public-Facing Application",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "843cefec1e3c",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "hardcoded_password_string",
+      "description": "Possible hardcoded password: ''",
+      "file_path": "./packages/core/src/vexa/cicd/shadow_decorator.py",
+      "line_start": 29,
+      "line_end": 31,
+      "code_snippet": "self.platform = platform\nself.token = \"\"\nself.repo = \"\"",
+      "cwe_ids": [
+        "CWE-259"
+      ],
+      "owasp_category": "A07:2021-Identification and Authentication Failures",
+      "mitre_attack_id": "T1552-Unsecured Credentials",
+      "nist_controls": [
+        "IA-5",
+        "SC-12"
+      ]
+    },
+    {
+      "id": "ca08f2d9a874",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "blacklist",
+      "description": "Consider possible security implications associated with the subprocess module.",
+      "file_path": "./packages/core/src/vexa/common/cloud_provider.py",
+      "line_start": 163,
+      "line_end": 165,
+      "code_snippet": "if capabilities.check_args:\nimport subprocess\n",
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1059-Command and Scripting Interpreter",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "fd5e827bba23",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "subprocess_without_shell_equals_true",
+      "description": "subprocess call - check for execution of untrusted input.",
+      "file_path": "./packages/core/src/vexa/common/cloud_provider.py",
+      "line_start": 203,
+      "line_end": 207,
+      "code_snippet": "\nresult = subprocess.run(\nfull_cmd, capture_output=True, text=True, timeout=30, check=False\n)\nif result.returncode != 0:",
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1059-Command and Scripting Interpreter",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "436dde34a15d",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "blacklist",
+      "description": "Consider possible security implications associated with the subprocess module.",
+      "file_path": "./packages/core/src/vexa/common/cloud_provider.py",
+      "line_start": 236,
+      "line_end": 238,
+      "code_snippet": "if check_quota and capabilities.ping_args:\nimport subprocess\n",
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1059-Command and Scripting Interpreter",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "235458eeaff6",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "subprocess_without_shell_equals_true",
+      "description": "subprocess call - check for execution of untrusted input.",
+      "file_path": "./packages/core/src/vexa/common/cloud_provider.py",
+      "line_start": 267,
+      "line_end": 271,
+      "code_snippet": "\nresult = subprocess.run(\nfull_ping, capture_output=True, text=True, timeout=90, check=False\n)\nif result.returncode != 0:",
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1059-Command and Scripting Interpreter",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "1f20b8ae381e",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "try_except_pass",
+      "description": "Try, Except, Pass detected.",
+      "file_path": "./packages/core/src/vexa/reports/sarif.py",
+      "line_start": 215,
+      "line_end": 218,
+      "code_snippet": ")\nexcept Exception:\npass\n",
+      "cwe_ids": [
+        "CWE-703",
+        "CWE-89"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1190-Exploit Public-Facing Application",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "b4d37bbb703e",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "blacklist",
+      "description": "Consider possible security implications associated with the subprocess module.",
+      "file_path": "./packages/core/src/vexa/scanners/base.py",
+      "line_start": 10,
+      "line_end": 12,
+      "code_snippet": "import sys\nimport subprocess\nimport importlib.util",
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1059-Command and Scripting Interpreter",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "0d9b58e8d149",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "subprocess_without_shell_equals_true",
+      "description": "subprocess call - check for execution of untrusted input.",
+      "file_path": "./packages/core/src/vexa/scanners/base.py",
+      "line_start": 232,
+      "line_end": 238,
+      "code_snippet": "try:\nresult = subprocess.run(\n[sys.executable, \"-m\", module_name, \"--version\"],\ncapture_output=True,\ntimeout=5,\n)\nreturn result.returncode == 0",
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1059-Command and Scripting Interpreter",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "b933f3d28d27",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "try_except_pass",
+      "description": "Try, Except, Pass detected.",
+      "file_path": "./packages/core/src/vexa/scanners/detect_secrets.py",
+      "line_start": 97,
+      "line_end": 100,
+      "code_snippet": "file_lines = f.readlines()\nexcept Exception:\npass\n",
+      "cwe_ids": [
+        "CWE-703",
+        "CWE-89"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1190-Exploit Public-Facing Application",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "d28d07480f57",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "blacklist",
+      "description": "Consider possible security implications associated with the subprocess module.",
+      "file_path": "./packages/core/src/vexa/scanners/engine.py",
+      "line_start": 367,
+      "line_end": 369,
+      "code_snippet": "try:\nimport subprocess\n",
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1059-Command and Scripting Interpreter",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "307c82897ebb",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "try_except_pass",
+      "description": "Try, Except, Pass detected.",
+      "file_path": "./packages/core/src/vexa/security/subprocess_runner.py",
+      "line_start": 200,
+      "line_end": 203,
+      "code_snippet": "await process.wait()\nexcept Exception:\npass\n",
+      "cwe_ids": [
+        "CWE-703",
+        "CWE-89"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1190-Exploit Public-Facing Application",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "571bbb270629",
+      "scanner": "bandit",
+      "severity": "low",
+      "title": "try_except_pass",
+      "description": "Try, Except, Pass detected.",
+      "file_path": "./packages/core/src/vexa/security/subprocess_runner.py",
+      "line_start": 349,
+      "line_end": 352,
+      "code_snippet": "await process.wait()\nexcept Exception:\npass\n",
+      "cwe_ids": [
+        "CWE-703",
+        "CWE-89"
+      ],
+      "owasp_category": "A03:2021-Injection",
+      "mitre_attack_id": "T1190-Exploit Public-Facing Application",
+      "nist_controls": [
+        "SI-10",
+        "SI-3"
+      ]
+    },
+    {
+      "id": "81dfcbe3a792",
+      "scanner": "bandit",
+      "severity": "medium",
+      "title": "blacklist",
+      "description": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+      "file_path": "./packages/core/src/vexa/telemetry/client.py",
+      "line_start": 37,
+      "line_end": 39,
+      "code_snippet": "try:\nresponse = urllib.request.urlopen(req, timeout=5)\nexcept Exception:",
+      "cwe_ids": [
+        "CWE-22"
+      ],
+      "owasp_category": "A01:2021-Broken Access Control",
+      "mitre_attack_id": "T1083-File and Directory Discovery",
+      "nist_controls": [
+        "AC-3",
+        "AC-6"
+      ]
+    }
+  ]
+}

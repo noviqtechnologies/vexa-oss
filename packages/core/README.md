@@ -2,7 +2,7 @@
 ![Vexa Logo](logo.png)
 The fundamental engine powering AI-native security analysis.
 
-Vexa Core provides the underlying logic for multi-scanner orchestration, AI-powered remediation, and security audit logging.
+Vexa Core provides the underlying logic for multi-scanner orchestration, AI-powered remediation, CI/CD automation (quality gates/PR decoration), and security audit logging.
 
 ### Installation
 ```bash

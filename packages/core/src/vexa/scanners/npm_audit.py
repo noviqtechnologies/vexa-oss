@@ -30,6 +30,7 @@ class NpmAuditScanner(BaseScanner):
     """
 
     name = "npm-audit"
+    executable = "npm"
     supported_modes = [ScanMode.LOCAL, ScanMode.CONTAINER]
 
     def get_command(

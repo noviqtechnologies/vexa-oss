@@ -1,0 +1,64 @@
+# Vexa - Azure DevOps Pipeline Template
+# Copy to your azure-pipelines.yml or reference as a template
+#
+# Required variables (set in Azure DevOps Pipeline Variables):
+#   GOOGLE_API_KEY (optional) - For AI enrichment
+
+trigger:
+  branches:
+    include:
+      - main
+      - dev
+      - release/*
+
+pr:
+  branches:
+    include:
+      - main
+      - dev
+
+schedules:
+  - cron: "0 6 * * 1"
+    displayName: Weekly Security Scan
+    branches:
+      include:
+        - main
+    always: true
+
+pool:
+  vmImage: "ubuntu-latest"
+
+container:
+  image: ghcr.io/noviqtechnologies/vexa:latest
+
+variables:
+  VEXA_AI_PROVIDER: "none"
+
+steps:
+  - script: |
+      vexa scan . \
+        --format sarif,html,json,markdown \
+        --output $(Build.ArtifactStagingDirectory)/vexa-reports \
+        --ai-provider $(VEXA_AI_PROVIDER) \
+        --fail-on critical,high \
+        || echo "##vso[task.setvariable variable=GATE_FAILED]true"
+    displayName: "Run Vexa Scan"
+    env:
+      GOOGLE_API_KEY: $(GOOGLE_API_KEY)
+      VEXA_OPENAI_API_KEY: $(VEXA_OPENAI_API_KEY)
+      VEXA_ANTHROPIC_API_KEY: $(VEXA_ANTHROPIC_API_KEY)
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: "$(Build.ArtifactStagingDirectory)/vexa-reports"
+      ArtifactName: "vexa-reports"
+    displayName: "Publish Security Reports"
+    condition: always()
+
+  - script: |
+      if [ "$(GATE_FAILED)" = "true" ]; then
+        echo "❌ Quality Gate Failed: Critical/High findings detected"
+        exit 1
+      fi
+    displayName: "Enforce Quality Gate"
+    condition: eq(variables['GATE_FAILED'], 'true')

@@ -73,7 +73,7 @@ def show_welcome_message():
         "[bold green][✓] Privacy First: This tool collects ZERO telemetry or usage data.[/bold green]"
     )
     console.print(
-        "\nFor documentation and support, visit: [blue underline]https://usevexa.dev[/blue underline]"
+        "\nFor documentation and support, visit: [blue underline]https://vexasec.io[/blue underline]"
     )
     console.print()
 

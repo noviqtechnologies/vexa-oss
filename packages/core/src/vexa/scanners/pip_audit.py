@@ -30,6 +30,7 @@ class PipAuditScanner(BaseScanner):
     """
 
     name = "pip-audit"
+    executable = "pip-audit"
     supported_modes = [ScanMode.LOCAL, ScanMode.CONTAINER]
 
     def get_command(

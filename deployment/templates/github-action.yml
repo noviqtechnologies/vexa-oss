@@ -1,0 +1,130 @@
+# Vexa - Advanced GitHub Actions Workflow
+# Full-featured: quality gates, PR comments, baseline comparison, security score, SBOM
+#
+# Required secrets:
+#   GOOGLE_API_KEY (optional) - For AI-powered false positive detection + remediation
+#
+# Configuration:
+#   Place a .vexa.yml at your repository root to customize scanners,
+#   quality gates, AI settings, and report formats.
+
+name: Vexa Security Gate
+
+on:
+  push:
+    branches: [main, dev, "release/*"]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    - cron: "0 6 * * 1"  # Weekly Monday 6AM UTC
+  workflow_dispatch:
+    inputs:
+      scanners:
+        description: "Comma-separated scanners (default: all)"
+        required: false
+        default: ""
+      ai-provider:
+        description: "AI provider: google, openai, anthropic, none"
+        required: false
+        default: "none"
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  vexa-scan:
+    name: Vexa Security Scan
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/noviqtechnologies/vexa:latest
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        VEXA_OPENAI_API_KEY: ${{ secrets.VEXA_OPENAI_API_KEY }}
+        VEXA_ANTHROPIC_API_KEY: ${{ secrets.VEXA_ANTHROPIC_API_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for baseline comparison
+
+      - name: Run Vexa Scan
+        id: scan
+        run: |
+          ARGS="scan . --format sarif,html,json,markdown --output vexa_reports --ai-provider ${{ inputs.ai-provider || 'none' }}"
+
+          if [ -n "${{ inputs.scanners }}" ]; then
+            ARGS="${ARGS} --scanners ${{ inputs.scanners }}"
+          fi
+
+          # Quality gate: fail on critical/high findings
+          ARGS="${ARGS} --fail-on critical,high"
+
+          vexa ${ARGS} || echo "gate_failed=true" >> $GITHUB_OUTPUT
+
+      - name: Upload SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: vexa_reports
+        continue-on-error: true
+
+      - name: Upload Reports as Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vexa-reports
+          path: vexa_reports/
+          retention-days: 30
+
+      - name: Post PR Comment
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const glob = require('@actions/glob');
+
+            // Find the markdown report
+            const globber = await glob.create('vexa_reports/**/report_*.md');
+            const files = await globber.glob();
+
+            let body = '## 🔒 Vexa Security Scan\n\nSee the full report in the **Actions** tab artifacts.';
+            if (files.length > 0) {
+              body = fs.readFileSync(files[0], 'utf8');
+            }
+
+            // Find existing comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.body.includes('🔒 Vexa Security Scan')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
+
+      - name: Enforce Quality Gate
+        if: steps.scan.outputs.gate_failed == 'true'
+        run: |
+          echo "❌ Quality Gate Failed: Critical/High findings detected"
+          exit 1

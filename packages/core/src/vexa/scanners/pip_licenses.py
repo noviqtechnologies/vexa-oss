@@ -30,6 +30,7 @@ class PipLicensesScanner(BaseScanner):
     """
 
     name = "pip-licenses"
+    executable = "pip-licenses"
     supported_modes = [ScanMode.LOCAL, ScanMode.CONTAINER]
 
     # Licenses that may require compliance attention

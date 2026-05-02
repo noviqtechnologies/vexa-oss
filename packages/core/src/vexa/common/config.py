@@ -8,6 +8,21 @@ from pathlib import Path
 from typing import Optional
 import os
 import tempfile
+from dotenv import load_dotenv
+
+
+# ZF-01: Load environment variables from .env files
+def _init_env():
+    # Load from current directory first (project-specific)
+    load_dotenv(Path.cwd() / ".env")
+    # Load from VEXA_HOME (global user settings)
+    if os.environ.get("VEXA_HOME"):
+        load_dotenv(Path(os.environ["VEXA_HOME"]) / ".env")
+    else:
+        load_dotenv(Path.home() / ".vexa" / ".env")
+
+
+_init_env()
 
 
 # Job Management Configuration - PERF-007, PERF-008

@@ -29,9 +29,13 @@ logger = get_logger(__name__)
     is_flag=True,
     help="Run without interactive prompts (auto-accepts defaults)",
 )
+@click.option(
+    "--api-key",
+    help="AI Provider API Key (overrides environment variables and .env files)",
+)
 @click.version_option(version=__version__, prog_name="vexa")
 @click.pass_context
-def cli(ctx, non_interactive):
+def cli(ctx, non_interactive, api_key):
     """
     Vexa - Enterprise Security Analysis CLI.
 
@@ -39,6 +43,7 @@ def cli(ctx, non_interactive):
     """
     ctx.ensure_object(dict)
     ctx.obj["non_interactive"] = non_interactive
+    ctx.obj["api_key"] = api_key
 
     if not is_terms_accepted():
         if os.environ.get("CI", "").lower() == "true" or non_interactive:

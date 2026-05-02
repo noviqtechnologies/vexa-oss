@@ -55,11 +55,11 @@ def test_openai_prompt_builder(mock_findings):
         mock_findings, app_context={"name": "test_app", "services": ["auth"]}
     )
 
-    assert "You are Vexa, an expert AI security assistant" in prompt
+    assert "You are Vexa, an elite AI Security Engineer" in prompt
     assert "test_app" in prompt
     assert "SQL Injection" in prompt
     assert "cursor.execute" in prompt
-    assert "Required Response Format" in prompt
+    assert "REQUIRED RESPONSE FORMAT" in prompt
 
 
 def test_openai_markdown_parser(mock_findings):
