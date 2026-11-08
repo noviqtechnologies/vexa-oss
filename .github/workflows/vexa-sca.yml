@@ -23,5 +23,7 @@ jobs:
         uses: noviqtechnologies/vexa-sca@v1
         with:
           token: ${{ secrets.VEXA_SECURITY_API_KEY }}
+          api-url: 'https://vexa-dev-514014.web.app/v1'
+          org: 'codesecuredev-01'
           fail-on: high
           upload-sarif: 'true'
