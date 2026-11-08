@@ -1,0 +1,27 @@
+name: Vexa Security Scan
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  vexa-scan:
+    name: Run Vexa Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Vexa Security Action
+        uses: noviqtechnologies/vexa-sca@v1
+        with:
+          token: ${{ secrets.VEXA_SECURITY_API_KEY }}
+          fail-on: high
+          upload-sarif: 'true'
